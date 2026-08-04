@@ -11,11 +11,11 @@ def extract_cells_from_image(
     clahe_tile_grid=(8, 8)
 ):
     """
-    Production Baseline Cell Extraction Core (Version 5 - Local Adaptive CLAHE Calibrated):
+    Production Baseline Cell Extraction Core (Version 5 - Local Adaptive CLAHE Calibrated + Deduplicated Non-Composite):
     1. Multi-Tile Local Adaptive CLAHE Contrast Mapping (Normalizes bright centers and dark corners)
     2. Adaptive Otsu Threshold Calibration (Calibrates threshold per image and per region)
     3. Unsharp Masking (1.8 * I - 0.8 * GaussianBlur)
-    4. Non-Composite Filter (Removes outer macro containers)
+    4. Deduplicated Non-Composite Filter (Deduplicates internal contour levels to preserve giant single cells)
     5. Duplicate Subset Filter & Cell Process Attachment Merger (Convex Hull Integration)
     6. Homogeneity Filter (Removes uniform gray background spaces)
     7. Post-Processing Pass: Convex Hull Boundary Closure (0% white-filling data loss)
@@ -51,7 +51,6 @@ def extract_cells_from_image(
     clahe = cv2.createCLAHE(clipLimit=clahe_clip_limit, tileGridSize=clahe_tile_grid)
 
     if np.max(cyan_diff) == 0:
-        # Monochrome / single-channel grayscale microscopy image
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if len(img.shape) == 3 else img.copy()
         contrast_map = clahe.apply(gray)
     else:
@@ -84,10 +83,10 @@ def extract_cells_from_image(
             if area >= 80 and not (area > 0.70 * total_img_area or (w > 0.85 * img_w and h > 0.85 * img_h)):
                 candidates.append((x, y, w, h, area, c))
 
-    # 3. NON-COMPOSITE FILTER
+    # 3. DEDUPLICATED NON-COMPOSITE FILTER
     non_composite = []
     for i, (cx1, cy1, cw1, ch1, ca1, cc1) in enumerate(candidates):
-        num_contained_cells = 0
+        contained_raw = []
         for j, (cx2, cy2, cw2, ch2, ca2, cc2) in enumerate(candidates):
             if i == j: continue
             inter_x1 = max(cx1, cx2)
@@ -99,9 +98,25 @@ def extract_cells_from_image(
             inter_area = inter_w * inter_h
             box2_area = cw2 * ch2
             if inter_area >= 0.80 * box2_area and ca1 > ca2 and ca2 >= 200:
-                num_contained_cells += 1
+                contained_raw.append((j, cx2, cy2, cw2, ch2, ca2))
 
-        if num_contained_cells < 2:
+        # Deduplicate contained sub-cells if they heavily overlap each other
+        unique_contained = []
+        for item in contained_raw:
+            j, x2, y2, w2, h2, a2 = item
+            is_dup_contained = False
+            for u in unique_contained:
+                uj, ux2, uy2, uw2, uh2, ua2 = u
+                inter = max(0, min(x2 + w2, ux2 + uw2) - max(x2, ux2)) * max(0, min(y2 + h2, uy2 + uh2) - max(y2, uy2))
+                union = w2 * h2 + uw2 * uh2 - inter
+                iou = inter / union if union > 0 else 0
+                if iou > 0.60:
+                    is_dup_contained = True
+                    break
+            if not is_dup_contained:
+                unique_contained.append(item)
+
+        if len(unique_contained) < 2:
             non_composite.append((cx1, cy1, cw1, ch1, ca1, cc1))
 
     # 4. DUPLICATE SUBSET FILTER & CELL PROCESS ATTACHMENT MERGER

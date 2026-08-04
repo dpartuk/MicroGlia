@@ -12,17 +12,8 @@ def extract_cells_with_boundary_sharpening(
 ):
     """
     New Option: "Boundary Sharpening" Cell Extraction Core Pipeline
-    Combines Option 4 Boundary Sharpening with Multi-Tile Adaptive CLAHE Dark Quadrant Recovery:
-
-    1. Cyan / Grayscale Contrast Signal Mapping
-    2. Bilateral Noise Suppression (d=5, sigmaColor=35, sigmaSpace=35)
-    3. Multi-Operator Edge Gradient Fusion (70% Scharr Gradient + 30% Canny Edge Hysteresis)
-    4. Multi-Tile Adaptive CLAHE Contrast Boosting (Normalizes Dark Quadrants & Corners)
-    5. Multi-Scale Fine (3x3, 2.2x) & Mid (7x7, 1.8x) Unsharp Masking -> Ultra-Sharpened Map
-    6. Adaptive Otsu Thresholding -> Crisp 1-2px Boundary Map
-    7. Non-Composite, Duplicate Subset, & Cell Process Leg Merger Filters
-    8. Dual Crop & Dual Overview Output Architecture (Original RGB + Sharpened Map)
-    9. Interactive Safari/Chrome Web Gallery Generation
+    Combines Option 4 Boundary Sharpening with Multi-Tile Adaptive CLAHE Dark Quadrant Recovery
+    and Deduplicated Non-Composite Filtering to preserve giant single cells.
     """
     if not os.path.exists(image_path):
         raise FileNotFoundError(f"Input image not found: {image_path}")
@@ -106,10 +97,10 @@ def extract_cells_with_boundary_sharpening(
             if area >= 80 and not (area > 0.70 * total_img_area or (w > 0.85 * img_w and h > 0.85 * img_h)):
                 candidates.append((x, y, w, h, area, c))
 
-    # STEP 7: NON-COMPOSITE FILTER
+    # STEP 7: DEDUPLICATED NON-COMPOSITE FILTER
     non_composite = []
     for i, (cx1, cy1, cw1, ch1, ca1, cc1) in enumerate(candidates):
-        num_contained_cells = 0
+        contained_raw = []
         for j, (cx2, cy2, cw2, ch2, ca2, cc2) in enumerate(candidates):
             if i == j: continue
             inter_x1 = max(cx1, cx2)
@@ -121,9 +112,25 @@ def extract_cells_with_boundary_sharpening(
             inter_area = inter_w * inter_h
             box2_area = cw2 * ch2
             if inter_area >= 0.80 * box2_area and ca1 > ca2 and ca2 >= 200:
-                num_contained_cells += 1
+                contained_raw.append((j, cx2, cy2, cw2, ch2, ca2))
 
-        if num_contained_cells < 2:
+        # Deduplicate contained sub-cells if they heavily overlap each other
+        unique_contained = []
+        for item in contained_raw:
+            j, x2, y2, w2, h2, a2 = item
+            is_dup_contained = False
+            for u in unique_contained:
+                uj, ux2, uy2, uw2, uh2, ua2 = u
+                inter = max(0, min(x2 + w2, ux2 + uw2) - max(x2, ux2)) * max(0, min(y2 + h2, uy2 + uh2) - max(y2, uy2))
+                union = w2 * h2 + uw2 * uh2 - inter
+                iou = inter / union if union > 0 else 0
+                if iou > 0.60:
+                    is_dup_contained = True
+                    break
+            if not is_dup_contained:
+                unique_contained.append(item)
+
+        if len(unique_contained) < 2:
             non_composite.append((cx1, cy1, cw1, ch1, ca1, cc1))
 
     # DUPLICATE SUBSET FILTER & CELL PROCESS ATTACHMENT MERGER
