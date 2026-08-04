@@ -1,0 +1,21 @@
+# Python Virtual Environment & Caches
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+*.docx
+
+# Ignore Output & Comparison Folders
+Data/baseline-output/
+Data/boundary-sharpening-output/
+Data/baseline_vs_sharpening_comparison/
+Data/edge-experiment-output/
+Data/new-approaches-output/
+Data/cyan-contour-output/
+
+# Ignore Historical Version Snapshots
+Data/version-1/
+Data/version-2/
+Data/version-3/
+Data/version-4/
+Data/version-5/
