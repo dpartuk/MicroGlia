@@ -111,8 +111,8 @@ This project builds directly upon the baseline M.Sc. thesis project completed at
 
 The baseline study established a soma-centric annotated dataset of 4,874 microglial cells extracted from phase-contrast and fluorescence microscopy images of PBM-treated rat brain slices. The dataset categorized cells into four discrete morphological states: Resting, Surveilling, Activated, and Resolution.
 
-![Figure 2: 4 Microglial Morphological Activation Cell States](/Users/dpeleg/local/MicroGlia/scratch/figures/figure3_cell_states_panel.jpg)
-*Figure 2: Representative single-cell crop examples across the 4 microglial morphological activation states: (A) Resting (Ramified), (B) Surveilling, (C) Activated (Ameboid), and (D) Resolution.*
+![Figure 2: 4 Microglial Morphological Activation Cell States with Side-by-Side Silhouette Masks](/Users/dpeleg/local/MicroGlia/scratch/figures/figure3_cell_states_panel.jpg)
+*Figure 2: Dual-crop representation panel across the 4 microglial morphological activation states: (A) Resting (Ramified), (B) Surveilling, (C) Activated (Ameboid), and (D) Resolution. Each state shows the raw RGB crop alongside its isolated binary silhouette mask.*
 
 The baseline architecture utilized a YOLOv11 object detector paired with a DINOv2 Vision Transformer feature extractor for 4-class classification. While achieving respectable baseline metrics (mAP@0.5 ≈ 0.76, macro-F1 ≈ 0.69), the study revealed critical performance bottlenecks:
 
