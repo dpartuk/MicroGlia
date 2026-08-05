@@ -34,6 +34,7 @@
 | **ROS** | Reactive Oxygen Species |
 | **SAM** | Segment Anything Model |
 | **SOTA** | State-of-the-Art |
+| **SSL** | Self-Supervised Learning |
 | **TBI** | Traumatic Brain Injury |
 | **U-Net** | Convolutional Network Architecture for Biological Segmentation |
 | **ViT** | Vision Transformer |
@@ -116,20 +117,24 @@ These baseline findings provide the direct rationale for our proposed Topologica
 
 ---
 
-## 6. Proposed Methodology
+## 6. Proposed Methodology & Two-Theme Project Architecture
 
-### 6.1 Pipeline Architecture
-The proposed framework consists of five integrated computational stages:
-* **Stage 1 (Polygonal Re-annotation)**: Convert bounding boxes to pixel-wise polygonal masks capturing somas and distal process fragments.
-* **Stage 2 (Foundation Segmentation)**: Fine-tune Cellpose 3.0 / SAM-Microscopy for whole-cell silhouette segmentation.
-* **Stage 3 (GNN Topological Graph Construction)**: Construct spatial proximity k-NN graphs connecting somas and process fragment nodes.
-* **Stage 4 (Self-Supervised Feature Learning)**: Train DINOv2 / Masked Autoencoders (MAE) on segmented masks for self-supervised feature extraction.
-* **Stage 5 (Activation Index Computation)**: Aggregate graph embeddings into a continuous Multi-Parametric Activation Index (0–1 scale).
+The project architecture is structured into two core operational themes, ensuring clean separation between data engineering / self-supervised representation learning and downstream model training / pharmacological evaluation:
 
-### 6.2 GNN Construction & Topological Feature Learning
-Segmented cell somas ($V_{\text{soma}}$) and distal process fragments ($V_{\text{fragment}}$) are represented as graph nodes $V = V_{\text{soma}} \cup V_{\text{fragment}}$. Graph edges $E$ are established using Delaunay triangulation and Euclidean distance thresholds ($d_{ij} \le 35 \,\mu\text{m}$). Node feature vectors $h_i$ encode morphological descriptors (area, perimeter, circularity, fractal dimension $D_f$) and DINOv2 embeddings.
+### THEME 1: Data Preparation, Cleaning, Aggregation, SSL, Storage & Labeling
+* **Stage 1.1 (Automated Cell Extraction & Cleaning)**: Execute `extract_cells.py` / `boundary_sharpening_pipeline.py` using Multi-Tile CLAHE ($8\times8$ grid), Scharr/Canny edge fusion, and contained sub-cell IoU deduplication.
+* **Stage 1.2 (Dual-Crop Storage & Dataset Aggregation)**: Save paired Raw RGB crops ($128\times128$) and binary silhouette masks for 1,000,000+ extracted crops.
+* **Stage 1.3 (Lab Stain Normalization Engine)**: Apply Macenko optical density matrix factorization to all 1M+ cell crops BEFORE SSL pre-training to eliminate IHC color shifts.
+* **Stage 1.4 (In-Domain Self-Supervised Pre-Training)**: Pre-train ViT-Base on 1M+ stain-normalized crops using DINOv2 self-distillation and MAE patch reconstruction.
+* **Stage 1.5 (Unsupervised Feature Space Pre-Clustering)**: Reduce SSL embeddings using UMAP and cluster with HDBSCAN/k-Means into ~100 morphometric clusters.
+* **Stage 1.6 (Active Bulk Labeling & Uncertainty Sampling)**: Annotate 10k–50k cells using 1-click bulk cluster verification + top 5% entropy expert sampling.
 
-A Graph Attention Network (GATv2) with multi-head attention performs message passing to aggregate process neighborhood topology into node-level and graph-level representations $h_G = \text{Readout}(\{h_i\})$.
+### THEME 2: Training, Classification, Counting & Evaluation
+* **Stage 2.1 (Deterministic Spatial Graph Construction)**: Connect Soma Nodes ($V_{\text{soma}}$) and Fragment Nodes ($V_{\text{fragment}}$) via Delaunay/k-NN edges using fixed lab pixel scale ($\mu\text{m/pixel}$, $d_{ij} \le 35\,\mu\text{m}$).
+* **Stage 2.2 (Multi-Task Joint Model Training)**: Train a joint network combining pre-trained DINOv2 SSL ViT backbone + GATv2 Graph Encoder using Focal + Contrastive + Reconstruction loss.
+* **Stage 2.3 (Whole-Slide High-Throughput Inference & Seam NMS)**: Tile gigapixel images into overlapping $1024\times1024$ regions, run parallel inference, and apply Non-Maximum Suppression (NMS, $IoU>0.5$) across tile seams.
+* **Stage 2.4 (Per-State Cell Counting & Continuous Activation Index)**: Output discrete 5-state counts and compute continuous Activation Index ($0.00$–$1.00$).
+* **Stage 2.5 (Pharmacological Drug & PBM Response Analytics Platform)**: Calculate Pearson $r$, Spearman $\rho$, and ANOVA correlating activation scores against candidate drug dosage levels and PBM light fluence ($J/\text{cm}^2$) for Dr. Lilach Gavish's screening pipeline.
 
 ---
 
@@ -137,34 +142,34 @@ A Graph Attention Network (GATv2) with multi-head attention performs message pas
 
 The proposed research will be executed across six structured project stages over a total estimated duration of **26 weeks (~6.5 months)**, adhering to the departmental proposal guidelines:
 
-### Stage 1 – Dataset Re-annotation & Preprocessing
-* **Task**: Re-annotate the institutional benchmark dataset of 4,874 microglial cells using fine polygonal masks in CVAT/Labelme, capturing somas, distal processes, and beaded fragments excluded by YOLO bounding boxes.
-* **Goal**: Establish a high-quality, fragment-first annotated polygonal dataset for supervised foundation model training.
+### Stage 1 – Theme 1: Dataset Extraction & Stain Normalization
+* **Task**: Run automated cell extraction across whole-slide microscopy images. Perform Macenko stain normalization on all 1,000,000+ extracted cell crops BEFORE SSL pre-training to standardize IHC color palettes.
+* **Goal**: Establish a clean, stain-normalized single-cell crop repository.
 * **Estimated Duration**: 4 weeks
 
-### Stage 2 – Foundation Model Fine-Tuning & Segmentation
-* **Task**: Implement and fine-tune Cellpose 3.0 and SAM-Microscopy on the polygonal dataset. Evaluate segmentation accuracy (Dice score, IoU, Boundary F1) against baseline thresholding.
-* **Goal**: Deploy a robust zero-shot foundation segmentation pipeline that extracts complete microglial silhouettes.
+### Stage 2 – Theme 1: SSL Pre-Training & Active Cluster Labeling
+* **Task**: Pre-train DINOv2 and MAE backbones on 1M+ stain-normalized crops. Run HDBSCAN clustering and annotate 10,000–50,000 cells using active bulk cluster verification in CVAT.
+* **Goal**: Deploy a domain-specific SSL feature encoder and establish a gold-standard labeled benchmark dataset.
 * **Estimated Duration**: 4 weeks
 
-### Stage 3 – Graph Neural Network (GNN) Construction & Topological Modeling
-* **Task**: Construct spatial k-NN and Delaunay proximity graphs connecting somas and process fragment nodes. Implement and train GATv2/MPNN GNN architectures for topological message passing.
+### Stage 3 – Theme 2: Spatial GNN Graph Construction & Topology
+* **Task**: Construct physical spatial proximity graphs ($G=(V,E)$) connecting soma nodes and process fragment nodes. Implement and train GATv2/MPNN GNN architectures for topological message passing.
 * **Goal**: Reconstruct shattered dystrophic microglia into single biological entities and capture full arborization topology.
 * **Estimated Duration**: 5 weeks
 
-### Stage 4 – Self-Supervised Contrastive Feature Learning
-* **Task**: Pre-train and fine-tune DINOv2 Vision Transformer and Masked Autoencoder (MAE) backbones on segmented microglial masks to build a self-supervised morphological feature space.
-* **Goal**: Generate rich, low-dimensional morphological embeddings robust to staining and optical variations.
+### Stage 4 – Theme 2: Multi-Task Joint Model Fine-Tuning
+* **Task**: Fine-tune the joint DINOv2 ViT + GATv2 GNN architecture on labeled data using combined Focal, Contrastive, and Dystrophic Reconstruction losses.
+* **Goal**: Achieve state-of-the-art per-class classification accuracy (Macro-F1 > 0.94) and resolve Resting vs. Resolution state ambiguity.
 * **Estimated Duration**: 4 weeks
 
-### Stage 5 – Multi-Parametric Activation Index & Model Evaluation
-* **Task**: Develop a continuous Multi-Parametric Activation Index (0–1 scale) aggregating graph embeddings. Perform comprehensive ablation studies comparing against YOLOv11+DINOv2 baselines across drug-treated and PBM-irradiated brain slices.
-* **Goal**: Validate model performance across discrete classification (4-class F1) and continuous activation scoring.
+### Stage 5 – Theme 2: High-Throughput Whole-Slide Inference Engine
+* **Task**: Build the whole-slide inference pipeline with overlapping $1024\times1024$ tile processing, border Non-Maximum Suppression (NMS), per-state counting, and continuous Activation Index ($0.00$–$1.00$) computation.
+* **Goal**: Deliver a fast, automated whole-slide cell counting engine.
 * **Estimated Duration**: 5 weeks
 
-### Stage 6 – Thesis Writing, Validation & Defense Preparation
-* **Task**: Perform statistical sensitivity validation on drug-treated and PBM-irradiated rat brain slices with Dr. Lilach Gavish, write the final M.Sc. thesis document, prepare peer-reviewed publication manuscripts, and defend the thesis.
-* **Goal**: Complete and submit the final M.Sc. thesis document and defend the research before the academic committee.
+### Stage 6 – Theme 2: Pharmacological Validation, Thesis Writing & Defense
+* **Task**: Perform statistical sensitivity validation (Pearson $r$, Spearman $\rho$) on drug-treated and PBM-irradiated rat brain slices with Dr. Lilach Gavish. Write final M.Sc. thesis and defend before academic committee.
+* **Goal**: Complete and submit the final M.Sc. thesis document and defend the research.
 * **Estimated Duration**: 4 weeks
 
 ---
@@ -173,7 +178,7 @@ The proposed research will be executed across six structured project stages over
 
 The framework will be evaluated across three complementary quantitative tiers:
 1. **Segmentation Metrics**: Dice Coefficient, Intersection over Union (IoU), and Boundary-F1 score compared against manual polygonal ground truth.
-2. **Morphological Classification**: Macro-F1 score, Per-class Precision/Recall, and Confusion Matrix analysis across Resting, Surveilling, Activated, and Resolution states (benchmarked against YOLOv11 baseline F1=0.69).
+2. **Morphological Classification**: Macro-F1 score, Per-class Precision/Recall, and Confusion Matrix analysis across Resting, Surveilling, Activated, Resolution, and Dystrophic states (benchmarked against YOLOv11 baseline F1=0.69).
 3. **Biological & Clinical Sensitivity**: Pearson correlation ($r$) and Spearman rank ($\rho$) between the computed Activation Index (0–1) and biological pharmacological drug dosage / PBM light fluence ($\text{J/cm}^2$) across tissue slices.
 
 ---
@@ -193,18 +198,20 @@ The framework will be evaluated across three complementary quantitative tiers:
 2. Dewan, M. C., Rattani, A., Gupta, S., et al. (2018). Estimating the global incidence of traumatic brain injury. *Journal of Neurosurgery*, 130(4), 1080-1097.
 3. Gavish, L., & Houreld, N. N. (2019). Therapeutic Efficacy of Photobiomodulation (PBM) in Wound Healing and Neuroinflammation. *Photomedicine and Laser Surgery*, 37(3), 150-162.
 4. Hamblin, M. R. (2018). Photobiomodulation for traumatic brain injury and neurodegenerative diseases. *Photonics & Lasers in Medicine*, 7(3), 231-244.
-5. Hoge, C. W., McGurk, D., Thomas, J. L., et al. (2008). Mild traumatic brain injury in U.S. Soldiers returning from Iraq. *New England Journal of Medicine*, 358(5), 453-463.
-6. Hsu, C.-H., Hsu, Y.-Y., Chang, B.-M., et al. (2025). StainAI: quantitative mapping of stained microglia and insights into brain-wide neuroinflammation and therapeutic effects in cardiac arrest. *Communications Biology*, 8, 7926.
-7. Kim, J., Pavlidis, P., & Vogel Ciernia, A. (2024). Development of a High-Throughput Pipeline to Characterize Microglia Morphological States at a Single-Cell Resolution. *eNeuro*, 11(6), ENEURO.0010-24.2024.
-8. Kirillov, A., Mintun, E., Ravi, N., et al. (2023). Segment Anything. *Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)*, 4015-4026.
-9. Leyh, J., Schafer, M. K., et al. (2021). Microglial morphodynamics in traumatic brain injury and recovery. *Glia*, 69(8), 1950-1965.
-10. Maas, A. I., Menon, D. K., Adelson, P. D., et al. (2017). Traumatic brain injury: integrated approaches to improve prevention, clinical care, and research. *The Lancet Neurology*, 16(12), 987-1048.
-11. Morera, H., Dave, P., Kolinko, Y., et al. (2024). A novel deep learning-based method for automatic stereology of microglia cells from low magnification images. *Neurotoxicology and Teratology*, 102, 107336.
-12. Oquab, M., Darcet, T., Moutakanni, T., et al. (2023). DINOv2: Learning Robust Visual Features Without Supervision. *arXiv preprint arXiv:2304.07193*.
-13. Pachitariu, M., & Stringer, C. (2024). Cellpose 3.0: accurate segmentation of biological images using foundation models. *Nature Methods*, 21(4), 701-710.
-14. Presaizen, T. (2026). *AI-Powered Microglial Classification for Activation Scoring*. Master's Thesis, School of Data Science: Intelligent Systems, Afeka Academic College of Engineering & Hebrew University of Jerusalem.
-15. Salter, M. W., & Beggs, S. (2014). Sublime microglia: expanding roles for the guardians of the CNS. *Cell*, 158(1), 15-24.
-16. Veličković, P., Cucurull, G., Casanova, A., et al. (2018). Graph Attention Networks. *International Conference on Learning Representations (ICLR)*.
-17. Wolf, S. A., Boddeke, H. W., & Kettenmann, H. (2017). Microglia in Physiology and Pathology. *Physiological Reviews*, 97(4), 1339-1393.
-18. Xiong, H., Zheng, S., Qi, X., Liu, J. (2025). μGlia-Flow, an automatic workflow for microglia segmentation and classification. *Journal of Neuroscience Methods*, 402, 110022.
-19. Zähringer, A., Vinnakota, J. M., Wertheimer, T., et al. (2025). AIstain: Enhancing microglial phagocytosis analysis through deep learning. *Cell Reports Methods*, 5(11), 101207.
+5. He, K., Chen, X., Xie, S., et al. (2022). Masked autoencoders are scalable vision learners. *IEEE/CVF CVPR*, 16000-16009.
+6. Hoge, C. W., McGurk, D., Thomas, J. L., et al. (2008). Mild traumatic brain injury in U.S. Soldiers returning from Iraq. *New England Journal of Medicine*, 358(5), 453-463.
+7. Hsu, C.-H., Hsu, Y.-Y., Chang, B.-M., et al. (2025). StainAI: quantitative mapping of stained microglia and insights into brain-wide neuroinflammation and therapeutic effects in cardiac arrest. *Communications Biology*, 8, 7926.
+8. Kim, J., Pavlidis, P., & Vogel Ciernia, A. (2024). Development of a High-Throughput Pipeline to Characterize Microglia Morphological States at a Single-Cell Resolution. *eNeuro*, 11(6), ENEURO.0010-24.2024.
+9. Kirillov, A., Mintun, E., Ravi, N., et al. (2023). Segment Anything. *Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)*, 4015-4026.
+10. Leyh, J., Schafer, M. K., et al. (2021). Microglial morphodynamics in traumatic brain injury and recovery. *Glia*, 69(8), 1950-1965.
+11. Maas, A. I., Menon, D. K., Adelson, P. D., et al. (2017). Traumatic brain injury: integrated approaches to improve prevention, clinical care, and research. *The Lancet Neurology*, 16(12), 987-1048.
+12. Macenko, M., Niethammer, M., Marron, J. S., et al. (2009). A method for normalizing histology slides for quantitative analysis. *IEEE ISBI*, 1107-1110.
+13. Morera, H., Dave, P., Kolinko, Y., et al. (2024). A novel deep learning-based method for automatic stereology of microglia cells from low magnification images. *Neurotoxicology and Teratology*, 102, 107336.
+14. Oquab, M., Darcet, T., Moutakanni, T., et al. (2023). DINOv2: Learning Robust Visual Features Without Supervision. *arXiv preprint arXiv:2304.07193*.
+15. Pachitariu, M., & Stringer, C. (2024). Cellpose 3.0: accurate segmentation of biological images using foundation models. *Nature Methods*, 21(4), 701-710.
+16. Presaizen, T. (2026). *AI-Powered Microglial Classification for Activation Scoring*. Master's Thesis, School of Data Science: Intelligent Systems, Afeka Academic College of Engineering & Hebrew University of Jerusalem.
+17. Salter, M. W., & Beggs, S. (2014). Sublime microglia: expanding roles for the guardians of the CNS. *Cell*, 158(1), 15-24.
+18. Veličković, P., Cucurull, G., Casanova, A., et al. (2018). Graph Attention Networks. *International Conference on Learning Representations (ICLR)*.
+19. Wolf, S. A., Boddeke, H. W., & Kettenmann, H. (2017). Microglia in Physiology and Pathology. *Physiological Reviews*, 97(4), 1339-1393.
+20. Xiong, H., Zheng, S., Qi, X., Liu, J. (2025). μGlia-Flow, an automatic workflow for microglia segmentation and classification. *Journal of Neuroscience Methods*, 402, 110022.
+21. Zähringer, A., Vinnakota, J. M., Wertheimer, T., et al. (2025). AIstain: Enhancing microglial phagocytosis analysis through deep learning. *Cell Reports Methods*, 5(11), 101207.

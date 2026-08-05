@@ -207,6 +207,7 @@ def create_research_proposal():
         ("ROS", "Reactive Oxygen Species"),
         ("SAM", "Segment Anything Model"),
         ("SOTA", "State-of-the-Art"),
+        ("SSL", "Self-Supervised Learning"),
         ("TBI", "Traumatic Brain Injury"),
         ("U-Net", "Convolutional Network Architecture for Biological Segmentation"),
         ("ViT", "Vision Transformer"),
@@ -242,10 +243,10 @@ def create_research_proposal():
 
     doc.add_page_break()
 
-    # 1. MOTIVATION (HIGHLIGHTING DR. LILACH GAVISH COLLABORATION & PHARMACOLOGICAL DRUG IMPACT)
+    # 1. MOTIVATION
     add_h1("1. Motivation")
-    add_body("Traumatic Brain Injury (TBI) represents a major global health crisis, affecting an estimated 69 million individuals annually and standing as a leading cause of long-term disability and mortality worldwide (Dewan et al., 2018; Maas et al., 2017). Beyond acute primary mechanical tissue disruption, TBI initiates a progressive secondary injury cascade characterized by sustained neuroinflammation, blood-brain barrier breakdown, and metabolic crisis. In military populations, mild TBI (mTBI) resulting from blast acceleration is especially prevalent, impacting 15%–22% of deployed service members and predisposing patients to persistent neurological deficits and post-traumatic stress disorder (PTSD) (Hoge et al., 2008; Okie, 2005).")
-    add_body("Microglia—the primary resident immune macrophages of the Central Nervous System (CNS)—are the central cellular orchestrators of this neuroinflammatory response (Salter & Beggs, 2014; Wolf et al., 2017). Under homeostatic conditions, surveilling microglia display a highly ramified morphology with small somas and delicate, dynamic processes that continuously scan the parenchymal microenvironment. Upon encountering mechanical or biochemical stress, microglia undergo rapid morphological metamorphosis, retracting process arbors, enlarging soma volumes, and transitioning into ameboid, hypertrophic, or dystrophic states. Because microglial structural shifts directly mirror their underlying functional polarization (pro-inflammatory M1-like vs. pro-resolving M2-like states), quantitative morphometry provides a critical, non-destructive window into post-injury tissue pathophysiology (Leyh et al., 2021).")
+    add_body("Traumatic Brain Injury (TBI) and secondary neurodegenerative disorders represent a major global health crisis, affecting an estimated 69 million individuals annually and standing as a leading cause of long-term neurocognitive impairment (Dewan et al., 2018; Maas et al., 2017). Following primary neurotrauma, a progressive secondary injury cascade ensues, driven by chronic neuroinflammation, oxidative stress, and blood-brain barrier breakdown. In military populations, mild TBI (mTBI) resulting from blast acceleration is especially prevalent, impacting 15%–22% of deployed service members and predisposing patients to persistent neurological deficits and post-traumatic stress disorder (PTSD) (Hoge et al., 2008; Okie, 2005).")
+    add_body("Microglia—the primary resident immune sentinels of the Central Nervous System (CNS)—are the central cellular orchestrators of this neuroinflammatory cascade (Salter & Beggs, 2014; Wolf et al., 2017). Under physiological homeostasis, surveilling microglia display a highly ramified morphology with small somas and delicate, dynamic processes that continuously scan the parenchymal microenvironment. Upon encountering mechanical or biochemical stress, microglia undergo rapid morphological metamorphosis, retracting process arbors, enlarging soma volumes, and transitioning into ameboid, hypertrophic, or dystrophic states. Because microglial structural shifts directly mirror their underlying functional polarization (pro-inflammatory M1-like vs. pro-resolving M2-like states), high-throughput quantitative morphometry provides a critical, non-destructive window into post-injury tissue pathophysiology (Leyh et al., 2021).")
     add_body("In translational pharmacology and neuro-therapeutics, evaluating the impact of candidate therapeutic drugs and physical modalities—such as Photobiomodulation (PBM) light therapy—on microglial activation and morphological recovery is paramount (Gavish & Houreld, 2019; Hamblin, 2018). In ongoing collaborative research directed by Dr. Lilach Gavish, PhD, MPH, quantifying how pharmacological drug candidates modulate microglial state transitions (e.g., accelerating resolution or suppressing dystrophic degeneration) is key to discovering novel neuroprotective treatments. However, screening pharmacological drug effects across large-scale tissue slices requires an objective, scalable, and spatially sensitive microglial quantification pipeline—a capability severely bottlenecked by current manual and parametric stereology methods.")
     add_body("Recent baseline research at our institution by Presaizen (2026) established a 4-class soma-centric classification pipeline using YOLOv11 and DINOv2 on rat brain slices. While providing an initial proof-of-concept, Presaizen (2026) highlighted fundamental computational limitations: bounding-box object detectors (64x64 crops) restrict analysis to the central soma, discarding up to 70% of distal process arborization. Consequently, bounding-box models suffer from biological misclassification between Resting and Resolution states and fail to detect shattered dystrophic microglia lacking a central soma anchor. Addressing these limitations through a topological, foundation-model-guided AI framework is essential for establishing unbiased morphometric biomarkers to evaluate drug and PBM therapeutic efficacy in translational neurobiology.")
 
@@ -301,48 +302,53 @@ def create_research_proposal():
     
     add_body("These baseline findings provide the direct rationale for our proposed Topological AI Pipeline.")
 
-    # 6. PROPOSED METHODOLOGY
-    add_h1("6. Proposed Methodology")
-    add_h2("6.1 Pipeline Architecture")
-    add_body("The proposed framework consists of five integrated computational stages:")
-    add_bullet(" Convert bounding boxes to pixel-wise polygonal masks capturing somas and distal process fragments.", "Stage 1 (Polygonal Re-annotation):")
-    add_bullet(" Fine-tune Cellpose 3.0 / SAM-Microscopy for whole-cell silhouette segmentation.", "Stage 2 (Foundation Segmentation):")
-    add_bullet(" Construct spatial proximity k-NN graphs connecting somas and process fragment nodes.", "Stage 3 (GNN Topological Graph Construction):")
-    add_bullet(" Train DINOv2 / Masked Autoencoders (MAE) on segmented masks for self-supervised feature extraction.", "Stage 4 (Self-Supervised Feature Learning):")
-    add_bullet(" Aggregate graph embeddings into a continuous Multi-Parametric Activation Index (0–1 scale).", "Stage 5 (Activation Index Computation):")
+    # 6. PROPOSED METHODOLOGY & TWO-THEME ARCHITECTURE
+    add_h1("6. Proposed Methodology & Project Architecture")
+    add_body("The project methodology is structured into two core operational themes, ensuring clean separation between data engineering / self-supervised representation learning and downstream model training / pharmacological evaluation:")
 
-    add_h2("6.2 GNN Construction & Topological Feature Learning")
-    add_body("Segmented cell somas ($V_{\\text{soma}}$) and distal process fragments ($V_{\\text{fragment}}$) are represented as graph nodes $V = V_{\\text{soma}} \\cup V_{\\text{fragment}}$. Graph edges $E$ are established using Delaunay triangulation and Euclidean distance thresholds ($d_{ij} \\le 35 \\,\\mu\\text{m}$). Node feature vectors $h_i$ encode morphological descriptors (area, perimeter, circularity, fractal dimension $D_f$) and DINOv2 embeddings.")
-    add_body("A Graph Attention Network (GATv2) with multi-head attention performs message passing to aggregate process neighborhood topology into node-level and graph-level representations $h_G = \\text{Readout}(\\{h_i\\})$.")
+    add_h2("THEME 1: Data Preparation, Cleaning, Aggregation, SSL, Storage & Labeling")
+    add_bullet(" Automated Whole-Slide Cell Extraction & Cleaning (CLAHE + Scharr/Canny edge fusion + contained sub-cell IoU deduplication).", "Stage 1.1:")
+    add_bullet(" Dual-Crop Storage & Dataset Aggregation (Raw RGB crops + binary silhouette masks for 1,000,000+ extracted crops).", "Stage 1.2:")
+    add_bullet(" Lab Stain Normalization Engine (Macenko optical density matrix factorization BEFORE SSL pre-training to eliminate IHC color shifts).", "Stage 1.3:")
+    add_bullet(" In-Domain Self-Supervised Pre-Training (DINOv2 self-distillation + MAE patch reconstruction on 1M+ stain-normalized crops).", "Stage 1.4:")
+    add_bullet(" Unsupervised Feature Space Pre-Clustering (UMAP + HDBSCAN partitioning embeddings into ~100 morphometric clusters).", "Stage 1.5:")
+    add_bullet(" Active Bulk Labeling & Uncertainty Sampling (1-click bulk cluster verification + top 5% entropy expert sampling for 10k–50k labeled cells).", "Stage 1.6:")
+
+    add_h2("THEME 2: Training, Classification, Counting & Evaluation")
+    add_bullet(" Deterministic Spatial Graph Construction (Connecting Soma Nodes V_soma and Fragment Nodes V_fragment using fixed physical pixel scale).", "Stage 2.1:")
+    add_bullet(" Multi-Task Joint Model Training (Pre-trained SSL DINOv2 ViT backbone + GATv2 Graph Encoder trained with Focal + Contrastive + Reconstruction loss).", "Stage 2.2:")
+    add_bullet(" Whole-Slide High-Throughput Inference & Seam NMS Deduplication (Parallel overlapping tile inference + border NMS).", "Stage 2.3:")
+    add_bullet(" Per-State Cell Counting & Continuous Activation Index Computation (Computing discrete 5-state counts and 0.00–1.00 continuous Activation Score).", "Stage 2.4:")
+    add_bullet(" Pharmacological Drug & PBM Response Analytics Platform (Dose-response sensitivity correlation r/rho for Dr. Lilach Gavish's screening pipeline).", "Stage 2.5:")
 
     # 7. WORK PLAN & STAGES (MATCHING LINOY'S FORMAT)
     add_h1("7. Work Plan and Project Stages")
     add_body("The proposed research will be executed across six structured project stages over a total estimated duration of 26 weeks (~6.5 months), adhering to the departmental proposal guidelines:")
 
     stages_data = [
-        ("Stage 1 – Dataset Re-annotation & Preprocessing",
-         "Re-annotate the institutional benchmark dataset of 4,874 microglial cells using fine polygonal masks in CVAT/Labelme, capturing somas, distal processes, and beaded fragments excluded by YOLO bounding boxes.",
-         "Establish a high-quality, fragment-first annotated polygonal dataset for supervised foundation model training.",
+        ("Stage 1 – Theme 1: Dataset Extraction & Stain Normalization",
+         "Run automated cell extraction (extract_cells.py) across whole-slide microscopy images. Perform Macenko stain normalization on all 1,000,000+ extracted cell crops to standardize IHC color palettes.",
+         "Establish a clean, stain-normalized single-cell crop repository.",
          "4 weeks"),
-        ("Stage 2 – Foundation Model Fine-Tuning & Segmentation",
-         "Implement and fine-tune Cellpose 3.0 and SAM-Microscopy on the polygonal dataset. Evaluate segmentation accuracy (Dice score, IoU, Boundary F1) against baseline thresholding.",
-         "Deploy a robust zero-shot foundation segmentation pipeline that extracts complete microglial silhouettes.",
+        ("Stage 2 – Theme 1: SSL Pre-Training & Active Cluster Labeling",
+         "Pre-train DINOv2 and MAE backbones on 1M+ stain-normalized crops. Run HDBSCAN clustering and annotate 10,000–50,000 cells using active bulk cluster verification in CVAT.",
+         "Deploy a domain-specific SSL feature encoder and establish a gold-standard labeled benchmark dataset.",
          "4 weeks"),
-        ("Stage 3 – Graph Neural Network (GNN) Construction & Topological Modeling",
-         "Construct spatial k-NN and Delaunay proximity graphs connecting somas and process fragment nodes. Implement and train GATv2/MPNN GNN architectures for topological message passing.",
+        ("Stage 3 – Theme 2: Spatial GNN Graph Construction & Topology",
+         "Construct physical spatial proximity graphs (G=(V,E)) connecting soma nodes and process fragment nodes. Implement and train GATv2/MPNN GNN architectures for topological message passing.",
          "Reconstruct shattered dystrophic microglia into single biological entities and capture full arborization topology.",
          "5 weeks"),
-        ("Stage 4 – Self-Supervised Contrastive Feature Learning",
-         "Pre-train and fine-tune DINOv2 Vision Transformer and Masked Autoencoder (MAE) backbones on segmented microglial masks to build a self-supervised morphological feature space.",
-         "Generate rich, low-dimensional morphological embeddings robust to staining and optical variations.",
+        ("Stage 4 – Theme 2: Multi-Task Joint Model Fine-Tuning",
+         "Fine-tune the joint DINOv2 ViT + GATv2 GNN architecture on labeled data using combined Focal, Contrastive, and Dystrophic Reconstruction losses.",
+         "Achieve state-of-the-art per-class classification accuracy (Macro-F1 > 0.94) and resolve Resting vs. Resolution state ambiguity.",
          "4 weeks"),
-        ("Stage 5 – Multi-Parametric Activation Index & Model Evaluation",
-         "Develop a continuous Multi-Parametric Activation Index (0–1 scale) aggregating graph embeddings. Perform comprehensive ablation studies comparing against YOLOv11+DINOv2 baselines across drug-treated and PBM-irradiated brain slices.",
-         "Validate model performance across discrete classification (4-class F1) and continuous activation scoring.",
+        ("Stage 5 – Theme 2: High-Throughput Whole-Slide Inference Engine",
+         "Build the whole-slide inference pipeline with overlapping 1024x1024 tile processing, border Non-Maximum Suppression (NMS), per-state counting, and continuous Activation Index (0.00–1.00) computation.",
+         "Deliver a fast, automated whole-slide cell counting engine.",
          "5 weeks"),
-        ("Stage 6 – Thesis Writing, Validation & Defense Preparation",
-         "Perform statistical sensitivity validation on drug-treated and PBM-irradiated rat brain slices with Dr. Lilach Gavish, write the final M.Sc. thesis document, prepare peer-reviewed publication manuscripts, and defend the thesis.",
-         "Complete and submit the final M.Sc. thesis document and defend the research before the academic committee.",
+        ("Stage 6 – Theme 2: Pharmacological Validation, Thesis Writing & Defense",
+         "Perform statistical sensitivity validation (Pearson r, Spearman rho) on drug-treated and PBM-irradiated rat brain slices with Dr. Lilach Gavish. Write final M.Sc. thesis and defend before academic committee.",
+         "Complete and submit the final M.Sc. thesis document and defend the research.",
          "4 weeks")
     ]
 
@@ -356,7 +362,7 @@ def create_research_proposal():
     add_h1("8. Evaluation Plan and Benchmarking")
     add_body("The framework will be evaluated across three complementary quantitative tiers:")
     add_bullet(" Dice Coefficient, Intersection over Union (IoU), and Boundary-F1 score compared against manual polygonal ground truth.", "1. Segmentation Metrics:")
-    add_bullet(" Macro-F1 score, Per-class Precision/Recall, and Confusion Matrix analysis across Resting, Surveilling, Activated, and Resolution states (benchmarked against YOLOv11 baseline F1=0.69).", "2. Morphological Classification:")
+    add_bullet(" Macro-F1 score, Per-class Precision/Recall, and Confusion Matrix analysis across Resting, Surveilling, Activated, Resolution, and Dystrophic states (benchmarked against YOLOv11 baseline F1=0.69).", "2. Morphological Classification:")
     add_bullet(" Pearson correlation ($r$) and Spearman rank ($\\rho$) between the computed Activation Index (0–1) and biological pharmacological drug dosage / PBM light fluence ($J/cm^2$) across tissue slices.", "3. Biological & Clinical Sensitivity:")
 
     # 9. EXPECTED CONTRIBUTION
@@ -373,12 +379,14 @@ def create_research_proposal():
         "Dewan, M. C., Rattani, A., Gupta, S., et al. (2018). Estimating the global incidence of traumatic brain injury. Journal of Neurosurgery, 130(4), 1080-1097.",
         "Gavish, L., & Houreld, N. N. (2019). Therapeutic Efficacy of Photobiomodulation (PBM) in Wound Healing and Neuroinflammation. Photomedicine and Laser Surgery, 37(3), 150-162.",
         "Hamblin, M. R. (2018). Photobiomodulation for traumatic brain injury and neurodegenerative diseases. Photonics & Lasers in Medicine, 7(3), 231-244.",
+        "He, K., Chen, X., Xie, S., et al. (2022). Masked autoencoders are scalable vision learners. IEEE/CVF CVPR, 16000-16009.",
         "Hoge, C. W., McGurk, D., Thomas, J. L., et al. (2008). Mild traumatic brain injury in U.S. Soldiers returning from Iraq. New England Journal of Medicine, 358(5), 453-463.",
         "Hsu, C.-H., Hsu, Y.-Y., Chang, B.-M., et al. (2025). StainAI: quantitative mapping of stained microglia and insights into brain-wide neuroinflammation and therapeutic effects in cardiac arrest. Communications Biology, 8, 7926.",
         "Kim, J., Pavlidis, P., & Vogel Ciernia, A. (2024). Development of a High-Throughput Pipeline to Characterize Microglia Morphological States at a Single-Cell Resolution. eNeuro, 11(6), ENEURO.0010-24.2024.",
         "Kirillov, A., Mintun, E., Ravi, N., et al. (2023). Segment Anything. Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV), 4015-4026.",
         "Leyh, J., Schafer, M. K., et al. (2021). Microglial morphodynamics in traumatic brain injury and recovery. Glia, 69(8), 1950-1965.",
         "Maas, A. I., Menon, D. K., Adelson, P. D., et al. (2017). Traumatic brain injury: integrated approaches to improve prevention, clinical care, and research. The Lancet Neurology, 16(12), 987-1048.",
+        "Macenko, M., Niethammer, M., Marron, J. S., et al. (2009). A method for normalizing histology slides for quantitative analysis. IEEE ISBI, 1107-1110.",
         "Morera, H., Dave, P., Kolinko, Y., et al. (2024). A novel deep learning-based method for automatic stereology of microglia cells from low magnification images. Neurotoxicology and Teratology, 102, 107336.",
         "Oquab, M., Darcet, T., Moutakanni, T., et al. (2023). DINOv2: Learning Robust Visual Features Without Supervision. arXiv preprint arXiv:2304.07193.",
         "Pachitariu, M., & Stringer, C. (2024). Cellpose 3.0: accurate segmentation of biological images using foundation models. Nature Methods, 21(4), 701-710.",
@@ -405,7 +413,7 @@ def create_research_proposal():
     out_downloads = '/Users/dpeleg/Downloads/research-proposal-final.docx'
     doc.save(out_local)
     doc.save(out_downloads)
-    print(f"Updated Pharmacological Drug Impact DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
+    print(f"Updated 2-Theme DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
 
 if __name__ == "__main__":
     create_research_proposal()
