@@ -6,7 +6,8 @@
 
 * **Student Name**: Doron Peleg
 * **Academic Program**: M.Sc. in Intelligent Systems (Machine Learning)
-* **Supervisors**: Dr. Hadas Lapid, Dr. Lilach Gavish (PhD, MPH), Reut Zinger
+* **Supervisor**: Dr. Hadas Lapid
+* **Advisors**: Dr. Lilach Gavish (PhD, MPH), Reut Zinger
 * **Submission Date**: August 2026
 
 ---
@@ -52,7 +53,7 @@ Microglia—the primary resident immune sentinels of the Central Nervous System 
 ![Figure 1: Original Whole-Slide Brain Tissue Microscopy Image](/Users/dpeleg/local/MicroGlia/scratch/figures/figure1_original_tissue.jpg)
 *Figure 1: Example of an original lab microscopy brain tissue slice image (`JPG_VID2724_B1_3_00d07h00m.jpg`) containing hundreds of microglial cells marked with cyan contours.*
 
-In translational pharmacology and neuro-therapeutics, evaluating the impact of candidate therapeutic drugs and physical modalities—such as Photobiomodulation (PBM) light therapy—on microglial activation and morphological recovery is paramount (Gavish & Houreld, 2019; Hamblin, 2018). In ongoing collaborative research directed by **Dr. Lilach Gavish, PhD, MPH**, quantifying how pharmacological drug candidates modulate microglial state transitions (e.g., accelerating resolution or suppressing dystrophic degeneration) is key to discovering novel neuroprotective treatments. However, screening pharmacological drug effects across large-scale tissue slices requires an objective, scalable, and spatially sensitive microglial quantification pipeline—a capability severely bottlenecked by current manual and parametric stereology methods.
+In translational pharmacology and neuro-therapeutics, evaluating the impact of candidate therapeutic drugs and physical modalities—such as Photobiomodulation (PBM) light therapy—on microglial activation and morphological recovery is paramount (Gavish & Houreld, 2019; Hamblin, 2018). In ongoing collaborative research advised by **Dr. Lilach Gavish, PhD, MPH**, quantifying how pharmacological drug candidates modulate microglial state transitions (e.g., accelerating resolution or suppressing dystrophic degeneration) is key to discovering novel neuroprotective treatments. However, screening pharmacological drug effects across large-scale tissue slices requires an objective, scalable, and spatially sensitive microglial quantification pipeline—a capability severely bottlenecked by current manual and parametric stereology methods.
 
 Recent baseline research at our institution by Presaizen (2026) established a 4-class soma-centric classification pipeline using YOLOv11 and DINOv2 on rat brain slices. While providing an initial proof-of-concept, Presaizen (2026) highlighted fundamental computational limitations: bounding-box object detectors ($64\times64$ crops) restrict analysis to the central soma, discarding up to 70% of distal process arborization. Consequently, bounding-box models suffer from biological misclassification between Resting and Resolution states and fail to detect shattered dystrophic microglia lacking a central soma anchor. Addressing these limitations through a topological, foundation-model-guided AI framework is essential for establishing unbiased morphometric biomarkers to evaluate drug and PBM therapeutic efficacy in translational neurobiology.
 
@@ -107,7 +108,7 @@ Despite rapid progress in deep learning for digital pathology, existing microgli
 
 ## 5. Preliminary Work and Study Rationale
 
-This project builds directly upon the baseline M.Sc. thesis project completed at our institution by Tali Presaizen (Jan 2026), supervised by Dr. Sharon Yalov-Handzel and Dr. Lilach Gavish.
+This project builds directly upon the baseline M.Sc. thesis project completed at our institution by Tali Presaizen (Jan 2026), supervised by Sharon Yalov-Handzel, PhD, and co-advised by Dr. Lilach Gavish, PhD, MPH.
 
 The baseline study established a soma-centric annotated dataset of 4,874 microglial cells extracted from phase-contrast and fluorescence microscopy images of PBM-treated rat brain slices. The dataset categorized cells into four discrete morphological states: Resting, Surveilling, Activated, and Resolution.
 
