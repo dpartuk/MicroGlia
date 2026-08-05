@@ -209,6 +209,7 @@ def create_research_proposal():
     abbrevs = [
         ("AI", "Artificial Intelligence"),
         ("AUC-ROC", "Area Under the Receiver Operating Characteristic Curve"),
+        ("CLAHE", "Contrast Limited Adaptive Histogram Equalization"),
         ("CNS", "Central Nervous System"),
         ("CNN", "Convolutional Neural Network"),
         ("CV", "Computer Vision"),
@@ -225,11 +226,9 @@ def create_research_proposal():
         ("MPNN", "Message Passing Neural Network"),
         ("PBM", "Photobiomodulation Therapy"),
         ("ROS", "Reactive Oxygen Species"),
-        ("SAM", "Segment Anything Model"),
         ("SOTA", "State-of-the-Art"),
         ("SSL", "Self-Supervised Learning"),
         ("TBI", "Traumatic Brain Injury"),
-        ("U-Net", "Convolutional Network Architecture for Biological Segmentation"),
         ("ViT", "Vision Transformer"),
         ("YOLO", "You Only Look Once (Object Detection Framework)")
     ]
@@ -278,20 +277,20 @@ def create_research_proposal():
     # 2. RESEARCH QUESTION AND HYPOTHESIS
     add_h1("2. Research Question and Hypothesis")
     add_h2("2.1 Research Questions")
-    add_bullet(" Can foundation-model segmentation (e.g., Cellpose 3.0 / SAM-Microscopy) combined with Graph Neural Networks (GNNs) overcome soma-centric bounding box limitations to accurately capture fragmented microglial arborization?", "RQ1:")
+    add_bullet(" Can automated cyan contour cell extraction combined with Graph Neural Networks (GNNs) overcome soma-centric bounding box limitations to accurately capture fragmented microglial arborization?", "RQ1:")
     add_bullet(" Does incorporating spatial process topology resolve the persistent biological confusion between Resting and Resolution microglial states?", "RQ2:")
     add_bullet(" Can a continuous, multi-parametric activation index derived from graph topological representations provide superior sensitivity in quantifying pharmacological drug treatments and Photobiomodulation (PBM) therapeutic responses compared to standard discrete classification?", "RQ3:")
 
     add_h2("2.2 Research Hypothesis")
-    add_body("It is hypothesized that transitioning from soma-centric bounding boxes to foundation-model-based polygonal segmentation (Cellpose 3.0 / SAM-Microscopy) and modeling the spatial neighborhood of fragmented distal processes using Graph Neural Networks (GNNs) will resolve the confusion between Resting and Resolution states by capturing the full cellular silhouette. Furthermore, by representing process fragments as nodes in a spatial proximity graph, the framework will significantly increase the recall of dystrophic/shattered cells lacking a unified soma anchor, yielding a sensitive, continuous activation index for evaluating drug and PBM therapeutic efficacy.")
+    add_body("It is hypothesized that transitioning from soma-centric bounding boxes to automated cyan contour cell extraction and modeling the spatial neighborhood of fragmented distal processes using Graph Neural Networks (GNNs) will resolve the confusion between Resting and Resolution states by capturing the full cellular silhouette. Furthermore, by representing process fragments as nodes in a spatial proximity graph, the framework will significantly increase the recall of dystrophic/shattered cells lacking a unified soma anchor, yielding a sensitive, continuous activation index for evaluating drug and PBM therapeutic efficacy.")
 
     # 3. RESEARCH OBJECTIVES
     add_h1("3. Research Objectives")
-    add_bullet(" Re-annotate the institutional benchmark dataset of 4,874 cells using fine polygonal masks to capture distal processes, beaded arborization, and shattered process fragments excluded by YOLO bounding boxes.", "Objective 1 (Dataset Re-annotation):")
-    add_bullet(" Deploy and fine-tune foundation segmentation models (Cellpose 3.0 and SAM-Microscopy) to extract full microglial silhouettes without relying on a central soma anchor.", "Objective 2 (Foundation Segmentation):")
+    add_bullet(" Re-annotate the benchmark dataset using fine polygonal masks to capture distal processes, beaded arborization, and shattered process fragments excluded by YOLO bounding boxes.", "Objective 1 (Dataset Re-annotation):")
+    add_bullet(" Process cyan-contoured single-cell crops using automated boundary sharpening (boundary_sharpening_pipeline.py) and CLAHE edge fusion to extract clean, high-fidelity binary silhouette masks.", "Objective 2 (Boundary Sharpening & Silhouette Extraction):")
     add_bullet(" Construct spatial proximity graphs connecting soma nodes and process fragment nodes, training a Graph Neural Network (GNN) to reconstruct shattered dystrophic cells into unified biological entities.", "Objective 3 (Graph Topology Construction):")
-    add_bullet(" Implement a contrastive self-supervised representation learning space (DINOv2 / Masked Autoencoders) fine-tuned on segmented microglial masks to separate morphologically subtle activation states.", "Objective 4 (Self-Supervised Feature Space):")
-    add_bullet(" Formulate a continuous Multi-Parametric Activation Index (0–1 scale) and validate its sensitivity against experimental pharmacological drug-treated, PBM-irradiated, and LPS-challenged rodent brain slices in collaboration with Dr. Lilach Gavish.", "Objective 5 (Pharmacological & Experimental Validation):")
+    add_bullet(" Implement a contrastive self-supervised representation learning space (DINOv2 / Masked Autoencoders) fine-tuned on stain-normalized cell crops and masks to separate morphologically subtle activation states.", "Objective 4 (Self-Supervised Feature Space):")
+    add_bullet(" Formulate a continuous Multi-Parametric Activation Index (0–1 scale) and validate its sensitivity against experimental pharmacological drug-treated and PBM-irradiated rodent brain slices in collaboration with Dr. Lilach Gavish.", "Objective 5 (Pharmacological & Experimental Validation):")
 
     # 4. LITERATURE REVIEW
     add_h1("4. Literature Review")
@@ -307,14 +306,14 @@ def create_research_proposal():
     add_h2("4.4 Automated Detection and Deep Learning")
     add_body("Recent computational advances have applied Convolutional Neural Networks (CNNs) and object detectors (YOLOv8, YOLOv11) to microglial quantification (Anwer et al., 2023; Morera et al., 2024; Hsu et al., 2025 - StainAI). While high-throughput bounding-box detectors excel at counting central somas, they cropped out distal process arborization ($64\\times64$ crops), discarding up to 70% of the morphological information required to distinguish subtle functional states.")
 
-    add_h2("4.5 Foundation Models and Image Segmentation")
-    add_body("Foundation models trained on millions of biological images—such as Cellpose 3.0 (Pachitariu & Stringer, 2024) and Segment Anything Model for Microscopy (SAM-Microscopy / SAM 2)—have revolutionized cellular segmentation. By predicting spatial gradient flows and vector fields, Cellpose segment zero-shot cell bodies and extended process branches without bounding-box constraints, providing the ideal input for topological analysis.")
+    add_h2("4.5 Cyan Contour Extraction & Image Processing")
+    add_body("Microscopy imaging protocols in our laboratory generate whole-slide tissue images where cells are marked with cyan contours. By applying multi-tile CLAHE ($8\\times8$ grid), Scharr/Canny edge gradient fusion, and contained sub-cell IoU deduplication, our extraction pipeline isolates individual cell bodies and arbors directly from the raw slide without relying on bounding-box object detectors.")
 
     add_h2("4.6 Graph Neural Networks (GNNs) in Cellular Topology")
     add_body("Graph Neural Networks (GNNs) model complex non-Euclidean spatial relationships. In neurobiology, representing segmented cellular somas and process fragments as nodes in a spatial proximity graph ($G = (V, E)$) enables Message Passing Neural Networks (MPNNs) or Graph Attention Networks (GATs) to learn topological connectivity. GNNs enable the reconstruction of 'shattered' dystrophic microglia—a critical bottleneck in neurodegeneration research.")
 
     add_h2("4.7 Literature Gap & Summary")
-    add_body("Despite rapid progress in deep learning for digital pathology, existing microglial pipelines remain strictly soma-centric and bounding-box constrained. No current framework integrates foundation-model segmentation with spatial GNN topological modeling to resolve Resting vs. Resolution state confusion or reconstruct fragmented dystrophic cells. This project addresses this critical gap.")
+    add_body("Despite rapid progress in deep learning for digital pathology, existing microglial pipelines remain strictly soma-centric and bounding-box constrained. No current framework integrates cyan contour cell extraction with spatial GNN topological modeling to resolve Resting vs. Resolution state confusion or reconstruct fragmented dystrophic cells. This project addresses this critical gap.")
 
     # 5. PRELIMINARY WORK & STUDY RATIONALE
     add_h1("5. Preliminary Work and Study Rationale")
@@ -323,7 +322,7 @@ def create_research_proposal():
     
     # EMBED FIGURE 3: 4 Microglial Cell Activation States Panel
     fig3_file = '/Users/dpeleg/local/MicroGlia/scratch/figures/figure3_cell_states_panel.jpg'
-    add_image_figure(fig3_file, "Figure 2: Dual-crop representation panel across the 4 microglial morphological activation states: (A) Resting (Ramified), (B) Surveilling, (C) Activated (Ameboid), and (D) Resolution. Each state shows the raw RGB crop alongside its isolated binary silhouette mask.", width_inches=6.0)
+    add_image_figure(fig3_file, "Figure 2: Dual-crop representation panel across the 4 microglial morphological activation states: (A) Resting (Ramified), (B) Surveilling, (C) Activated (Ameboid), and (D) Resolution. Each state shows the raw RGB cell crop alongside its isolated, boundary-sharpened single-cell silhouette crop (subcell_XXX_sharpened_extracted.jpg).", width_inches=6.0)
 
     add_body("The baseline architecture utilized a YOLOv11 object detector for 4-class classification. While achieving respectable baseline metrics (mAP@0.5 ≈ 0.76, macro-F1 ≈ 0.69), the study revealed key performance challenges:")
     add_bullet(" Bounding boxes crop out distal process branches, restricting analysis to the central soma.", "1. Soma-Centric Restriction:")
@@ -448,7 +447,7 @@ def create_research_proposal():
     out_downloads = '/Users/dpeleg/Downloads/research-proposal-final.docx'
     doc.save(out_local)
     doc.save(out_downloads)
-    print(f"Updated Presaizen Statement DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
+    print(f"Updated Objective 2 DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
 
 if __name__ == "__main__":
     create_research_proposal()
