@@ -273,7 +273,7 @@ def create_research_proposal():
     add_image_figure(fig1_file, "Figure 1: Example of an original lab microscopy brain tissue slice image (e.g. JPG_VID2724_B1_3_00d07h00m.jpg) containing hundreds of microglial cells marked with cyan contours.", width_inches=5.8)
 
     add_body("In translational pharmacology and neuro-therapeutics, evaluating the impact of candidate therapeutic drugs and physical modalities—such as Photobiomodulation (PBM) light therapy—on microglial activation and morphological recovery is paramount (Gavish & Houreld, 2019; Hamblin, 2018). In ongoing collaborative research advised by Dr. Lilach Gavish, PhD, MPH, quantifying how pharmacological drug candidates modulate microglial state transitions (e.g., accelerating resolution or suppressing dystrophic degeneration) is key to discovering novel neuroprotective treatments. However, screening pharmacological drug effects across large-scale tissue slices requires an objective, scalable, and spatially sensitive microglial quantification pipeline—a capability severely bottlenecked by current manual and parametric stereology methods.")
-    add_body("Recent baseline research at our institution by Presaizen (2026) established a 4-class soma-centric classification pipeline using YOLOv11 and DINOv2 on rat brain slices. While providing an initial proof-of-concept, Presaizen (2026) highlighted fundamental computational limitations: bounding-box object detectors (64x64 crops) restrict analysis to the central soma, discarding up to 70% of distal process arborization. Consequently, bounding-box models suffer from biological misclassification between Resting and Resolution states and fail to detect shattered dystrophic microglia lacking a central soma anchor. Addressing these limitations through a topological, foundation-model-guided AI framework is essential for establishing unbiased morphometric biomarkers to evaluate drug and PBM therapeutic efficacy in translational neurobiology.")
+    add_body("Recent baseline research at Afeka Academic College of Engineering by Presaizen (2026) established a 4-class soma-centric classification pipeline using YOLOv11 object detection on microscopy brain tissue slices. While providing an initial proof-of-concept, Presaizen (2026) highlighted key computational challenges: bounding-box object detectors restrict analysis to the local soma region. Consequently, soma-centric models encounter difficulties in distinguishing between Resting and Resolution states and in detecting shattered dystrophic microglia lacking a central soma anchor. Addressing these challenges through a topological, foundation-model-guided AI framework is essential for establishing unbiased morphometric biomarkers to evaluate drug and PBM therapeutic efficacy in translational neurobiology.")
 
     # 2. RESEARCH QUESTION AND HYPOTHESIS
     add_h1("2. Research Question and Hypothesis")
@@ -318,17 +318,17 @@ def create_research_proposal():
 
     # 5. PRELIMINARY WORK & STUDY RATIONALE
     add_h1("5. Preliminary Work and Study Rationale")
-    add_body("This project builds directly upon the baseline M.Sc. thesis project completed at our institution by Tali Presaizen (Jan 2026), supervised by Sharon Yalov-Handzel, PhD, and co-advised by Dr. Lilach Gavish, PhD, MPH.")
+    add_body("This project builds directly upon the baseline M.Sc. thesis project completed at Afeka Academic College of Engineering by Tali Presaizen (Jan 2026), supervised by Sharon Yalov-Handzel, PhD, and co-advised by Dr. Lilach Gavish, PhD, MPH.")
     add_body("The baseline study established a soma-centric annotated dataset of 4,874 microglial cells extracted from phase-contrast and fluorescence microscopy images of PBM-treated rat brain slices. The dataset categorized cells into four discrete morphological states: Resting, Surveilling, Activated, and Resolution.")
     
     # EMBED FIGURE 3: 4 Microglial Cell Activation States Panel
     fig3_file = '/Users/dpeleg/local/MicroGlia/scratch/figures/figure3_cell_states_panel.jpg'
     add_image_figure(fig3_file, "Figure 2: Dual-crop representation panel across the 4 microglial morphological activation states: (A) Resting (Ramified), (B) Surveilling, (C) Activated (Ameboid), and (D) Resolution. Each state shows the raw RGB crop alongside its isolated binary silhouette mask.", width_inches=6.0)
 
-    add_body("The baseline architecture utilized a YOLOv11 object detector paired with a DINOv2 Vision Transformer feature extractor for 4-class classification. While achieving respectable baseline metrics (mAP@0.5 ≈ 0.76, macro-F1 ≈ 0.69), the study revealed critical performance bottlenecks:")
-    add_bullet(" Soma-centric $64\\times64$ bounding boxes cropped out distal process branches, discarding 70% of morphological information.", "1. Distal Information Loss:")
-    add_bullet(" The confusion matrix revealed severe misclassification between Resting and Resolution states (F1 < 0.62), as both states share similar soma sizes but differ vastly in distal process topology.", "2. Resting vs. Resolution Ambiguity:")
-    add_bullet(" Dystrophic/shattered microglia in injured brain tissue lack a central soma anchor, causing YOLO to miss up to 45% of fragmented cellular entities.", "3. Failure on Dystrophic Microglia:")
+    add_body("The baseline architecture utilized a YOLOv11 object detector for 4-class classification. While achieving respectable baseline metrics (mAP@0.5 ≈ 0.76, macro-F1 ≈ 0.69), the study revealed key performance challenges:")
+    add_bullet(" Bounding boxes crop out distal process branches, restricting analysis to the central soma.", "1. Soma-Centric Restriction:")
+    add_bullet(" Misclassification occurred between Resting and Resolution states, as both states share similar soma sizes but differ in distal process topology.", "2. Resting vs. Resolution Ambiguity:")
+    add_bullet(" Dystrophic/shattered microglia in injured brain tissue lack a central soma anchor, causing object detectors to miss fragmented cellular entities.", "3. Challenges on Dystrophic Microglia:")
     
     add_body("These baseline findings provide the direct rationale for our proposed Topological AI Pipeline.")
 
@@ -448,7 +448,7 @@ def create_research_proposal():
     out_downloads = '/Users/dpeleg/Downloads/research-proposal-final.docx'
     doc.save(out_local)
     doc.save(out_downloads)
-    print(f"Updated Advisor Metadata DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
+    print(f"Updated Presaizen Statement DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
 
 if __name__ == "__main__":
     create_research_proposal()

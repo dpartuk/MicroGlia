@@ -55,7 +55,7 @@ Microglia—the primary resident immune sentinels of the Central Nervous System 
 
 In translational pharmacology and neuro-therapeutics, evaluating the impact of candidate therapeutic drugs and physical modalities—such as Photobiomodulation (PBM) light therapy—on microglial activation and morphological recovery is paramount (Gavish & Houreld, 2019; Hamblin, 2018). In ongoing collaborative research advised by **Dr. Lilach Gavish, PhD, MPH**, quantifying how pharmacological drug candidates modulate microglial state transitions (e.g., accelerating resolution or suppressing dystrophic degeneration) is key to discovering novel neuroprotective treatments. However, screening pharmacological drug effects across large-scale tissue slices requires an objective, scalable, and spatially sensitive microglial quantification pipeline—a capability severely bottlenecked by current manual and parametric stereology methods.
 
-Recent baseline research at our institution by Presaizen (2026) established a 4-class soma-centric classification pipeline using YOLOv11 and DINOv2 on rat brain slices. While providing an initial proof-of-concept, Presaizen (2026) highlighted fundamental computational limitations: bounding-box object detectors ($64\times64$ crops) restrict analysis to the central soma, discarding up to 70% of distal process arborization. Consequently, bounding-box models suffer from biological misclassification between Resting and Resolution states and fail to detect shattered dystrophic microglia lacking a central soma anchor. Addressing these limitations through a topological, foundation-model-guided AI framework is essential for establishing unbiased morphometric biomarkers to evaluate drug and PBM therapeutic efficacy in translational neurobiology.
+Recent baseline research at Afeka Academic College of Engineering by Presaizen (2026) established a 4-class soma-centric classification pipeline using YOLOv11 object detection on microscopy brain tissue slices. While providing an initial proof-of-concept, Presaizen (2026) highlighted key computational challenges: bounding-box object detectors restrict analysis to the local soma region. Consequently, soma-centric models encounter difficulties in distinguishing between Resting and Resolution states and in detecting shattered dystrophic microglia lacking a central soma anchor. Addressing these challenges through a topological, foundation-model-guided AI framework is essential for establishing unbiased morphometric biomarkers to evaluate drug and PBM therapeutic efficacy in translational neurobiology.
 
 ---
 
@@ -108,18 +108,18 @@ Despite rapid progress in deep learning for digital pathology, existing microgli
 
 ## 5. Preliminary Work and Study Rationale
 
-This project builds directly upon the baseline M.Sc. thesis project completed at our institution by Tali Presaizen (Jan 2026), supervised by Sharon Yalov-Handzel, PhD, and co-advised by Dr. Lilach Gavish, PhD, MPH.
+This project builds directly upon the baseline M.Sc. thesis project completed at Afeka Academic College of Engineering by Tali Presaizen (Jan 2026), supervised by Sharon Yalov-Handzel, PhD, and co-advised by Dr. Lilach Gavish, PhD, MPH.
 
 The baseline study established a soma-centric annotated dataset of 4,874 microglial cells extracted from phase-contrast and fluorescence microscopy images of PBM-treated rat brain slices. The dataset categorized cells into four discrete morphological states: Resting, Surveilling, Activated, and Resolution.
 
 ![Figure 2: 4 Microglial Morphological Activation Cell States with Side-by-Side Silhouette Masks](/Users/dpeleg/local/MicroGlia/scratch/figures/figure3_cell_states_panel.jpg)
 *Figure 2: Dual-crop representation panel across the 4 microglial morphological activation states: (A) Resting (Ramified), (B) Surveilling, (C) Activated (Ameboid), and (D) Resolution. Each state shows the raw RGB crop alongside its isolated binary silhouette mask.*
 
-The baseline architecture utilized a YOLOv11 object detector paired with a DINOv2 Vision Transformer feature extractor for 4-class classification. While achieving respectable baseline metrics (mAP@0.5 ≈ 0.76, macro-F1 ≈ 0.69), the study revealed critical performance bottlenecks:
+The baseline architecture utilized a YOLOv11 object detector for 4-class classification. While achieving respectable baseline metrics (mAP@0.5 ≈ 0.76, macro-F1 ≈ 0.69), the study revealed key performance challenges:
 
-1. **Distal Information Loss**: Soma-centric $64\times64$ bounding boxes cropped out distal process branches, discarding 70% of morphological information.
-2. **Resting vs. Resolution Ambiguity**: The confusion matrix revealed severe misclassification between Resting and Resolution states (F1 < 0.62), as both states share similar soma sizes but differ vastly in distal process topology.
-3. **Failure on Dystrophic Microglia**: Dystrophic/shattered microglia in injured brain tissue lack a central soma anchor, causing YOLO to miss up to 45% of fragmented cellular entities.
+1. **Soma-Centric Restriction**: Bounding boxes crop out distal process branches, restricting analysis to the central soma.
+2. **Resting vs. Resolution Ambiguity**: Misclassification occurred between Resting and Resolution states, as both states share similar soma sizes but differ in distal process topology.
+3. **Challenges on Dystrophic Microglia**: Dystrophic/shattered microglia in injured brain tissue lack a central soma anchor, causing object detectors to miss fragmented cellular entities.
 
 These baseline findings provide the direct rationale for our proposed Topological AI Pipeline.
 
