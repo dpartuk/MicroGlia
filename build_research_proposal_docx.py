@@ -286,7 +286,7 @@ def create_research_proposal():
 
     # 3. RESEARCH OBJECTIVES
     add_h1("3. Research Objectives")
-    add_bullet(" Establish a gold-standard benchmark dataset of 10,000 to 50,000 single-cell crops labeled across 5 morphological activation states (Resting, Surveilling, Activated, Resolution, Dystrophic) using SSL feature space pre-clustering (HDBSCAN), 1-click bulk cluster verification, and entropy-driven uncertainty sampling H(x) indexed in MongoDB.", "Objective 1 (Active Bulk Dataset Labeling & Benchmark Construction):")
+    add_bullet(" Establish a gold-standard benchmark dataset of 10,000 to 50,000 single-cell crops labeled across 5 morphological activation states (Quiescent / Resting, Patrolling / Surveilling, Reactive / Activated, Senescent / Resolution, Dystrophic) using SSL feature space pre-clustering (HDBSCAN), 1-click bulk cluster verification, and entropy-driven uncertainty sampling H(x) indexed in MongoDB.", "Objective 1 (Active Bulk Dataset Labeling & Benchmark Construction):")
     add_bullet(" Process cyan-contoured single-cell crops using automated boundary sharpening (boundary_sharpening_pipeline.py) and CLAHE edge fusion to extract clean, high-fidelity binary silhouette masks.", "Objective 2 (Boundary Sharpening & Silhouette Extraction):")
     add_bullet(" Implement a contrastive self-supervised representation learning space (DINOv2 / Masked Autoencoders) fine-tuned on stain-normalized cell crops and masks to separate morphologically subtle activation states.", "Objective 3 (Self-Supervised Feature Space):")
     add_bullet(" Construct spatial proximity graphs connecting soma nodes and process fragment nodes (using pre-trained SSL feature embeddings as node representations), training a Graph Neural Network (GNN) to reconstruct shattered dystrophic cells into unified biological entities.", "Objective 4 (Graph Topology Construction):")
@@ -318,11 +318,11 @@ def create_research_proposal():
     # 5. PRELIMINARY WORK & STUDY RATIONALE
     add_h1("5. Preliminary Work and Study Rationale")
     add_body("This project builds directly upon the baseline M.Sc. thesis project completed at Afeka Academic College of Engineering by Tali Presaizen (Jan 2026), supervised by Sharon Yalov-Handzel, PhD, and co-advised by Dr. Lilach Gavish, PhD, MPH.")
-    add_body("The baseline study established a soma-centric annotated dataset of 4,874 microglial cells extracted from phase-contrast and fluorescence microscopy images of PBM-treated rat brain slices. The dataset categorized cells into four discrete morphological states: Resting, Surveilling, Activated, and Resolution.")
+    add_body("The baseline study established a soma-centric annotated dataset of 4,874 microglial cells extracted from phase-contrast and fluorescence microscopy images of PBM-treated rat brain slices. The dataset categorized cells into four discrete morphological states: Quiescent / Resting, Patrolling / Surveilling, Reactive / Pro-inflammatory / Activated, and Senescent / Terminal / Resolution.")
     
     # EMBED FIGURE 3: 4 Microglial Cell Activation States Panel
     fig3_file = '/Users/dpeleg/local/MicroGlia/scratch/figures/figure3_cell_states_panel.jpg'
-    add_image_figure(fig3_file, "Figure 2: Dual-crop representation panel across the 4 microglial morphological activation states defined by Presaizen (2026): (A) Quiescent (Resting) [small, circular soma with no branches], (B) Patrolling (Surveilling) [circular/spindle soma with 2 branching podia], (C) Reactive (Activated) [irregular soma with 2-3 podia], and (D) Senescent (Resolution) [ameboid/flat medium-large soma with no podia]. Each state shows the raw RGB crop alongside its isolated binary silhouette crop (subcell_XXX_sharpened_extracted.jpg).", width_inches=6.0)
+    add_image_figure(fig3_file, "Figure 2: Dual-crop representation panel across the 4 microglial morphological activation states defined by Presaizen (2026): (A) Quiescent / Resting [small, circular soma with no branches], (B) Patrolling / Surveilling [circular/spindle soma with 2 branching podia], (C) Reactive / Activated [irregular soma with 2-3 podia], and (D) Senescent / Resolution [ameboid/flat medium-large soma with no podia]. Each state shows the raw RGB crop alongside its isolated binary silhouette crop (subcell_XXX_sharpened_extracted.jpg).", width_inches=6.0)
 
     # ADD PRESAIZEN EXACT TABLE 1
     add_h2("5.1 Morphological Activation State Criteria (Table 1 - Presaizen, 2026)")
@@ -346,10 +346,10 @@ def create_research_proposal():
         set_cell_margins(t_hdr[i_col], top=20, bottom=20, left=40, right=40)
 
     pres_table1_rows = [
-        ("Quiescent (Resting)", "Circular", "Small", "None", "Clear", "Dark"),
-        ("Patrolling (Surveilling)", "Circular / spindle", "Small-medium", "2", "Clear", "Dark"),
-        ("Reactive / Pro-inflammatory (Activated)", "Irregular", "Small-medium", "2–3", "Intermittent", "Intermediate"),
-        ("Senescent / Terminal (Resolution)", "Ameboid / flat", "Medium-large", "None", "Clear", "Bright")
+        ("Quiescent / Resting", "Circular", "Small", "None", "Clear", "Dark"),
+        ("Patrolling / Surveilling", "Circular / spindle", "Small-medium", "2", "Clear", "Dark"),
+        ("Reactive / Pro-inflammatory / Activated", "Irregular", "Small-medium", "2–3", "Intermittent", "Intermediate"),
+        ("Senescent / Terminal / Resolution", "Ameboid / flat", "Medium-large", "None", "Clear", "Bright")
     ]
 
     for c_name, shape_v, size_v, podia_v, bnd_v, bright_v in pres_table1_rows:
@@ -451,7 +451,7 @@ def create_research_proposal():
     add_h1("8. Evaluation Plan and Benchmarking")
     add_body("The framework will be evaluated across three complementary quantitative tiers:")
     add_bullet(" Dice Coefficient, Intersection over Union (IoU), and Boundary-F1 score compared against manual polygonal ground truth.", "1. Segmentation Metrics:")
-    add_bullet(" Macro-F1 score, Per-class Precision/Recall, and Confusion Matrix analysis across Resting, Surveilling, Activated, Resolution, and Dystrophic states (benchmarked against YOLOv11 baseline F1=0.69).", "2. Morphological Classification:")
+    add_bullet(" Macro-F1 score, Per-class Precision/Recall, and Confusion Matrix analysis across Quiescent / Resting, Patrolling / Surveilling, Reactive / Activated, Senescent / Resolution, and Dystrophic states (benchmarked against YOLOv11 baseline F1=0.69).", "2. Morphological Classification:")
     add_bullet(" Pearson correlation ($r$) and Spearman rank ($\\rho$) between the computed Activation Index (0–1) and biological pharmacological drug dosage / PBM light fluence ($J/cm^2$) across tissue slices.", "3. Biological & Clinical Sensitivity:")
 
     # 9. EXPECTED CONTRIBUTION
@@ -502,7 +502,7 @@ def create_research_proposal():
     out_downloads = '/Users/dpeleg/Downloads/research-proposal-final.docx'
     doc.save(out_local)
     doc.save(out_downloads)
-    print(f"Updated Presaizen Table 1 & Figure 2 DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
+    print(f"Updated Full Dual-Name DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
 
 if __name__ == "__main__":
     create_research_proposal()

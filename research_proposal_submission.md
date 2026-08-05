@@ -62,17 +62,17 @@ Recent baseline research at Afeka Academic College of Engineering by Presaizen (
 
 ### 2.1 Research Questions
 * **RQ1**: Can automated cyan contour cell extraction combined with Graph Neural Networks (GNNs) overcome soma-centric bounding box limitations to accurately capture fragmented microglial arborization?
-* **RQ2**: Does incorporating spatial process topology resolve the persistent biological confusion between Resting and Resolution microglial states?
+* **RQ2**: Does incorporating spatial process topology resolve the persistent biological confusion between Quiescent / Resting and Senescent / Resolution microglial states?
 * **RQ3**: Can a continuous, multi-parametric activation index derived from graph topological representations provide superior sensitivity in quantifying pharmacological drug treatments and Photobiomodulation (PBM) therapeutic responses compared to standard discrete classification?
 
 ### 2.2 Research Hypothesis
-It is hypothesized that transitioning from soma-centric bounding boxes to automated cyan contour cell extraction and modeling the spatial neighborhood of fragmented distal processes using Graph Neural Networks (GNNs) will resolve the confusion between Resting and Resolution states by capturing the full cellular silhouette. Furthermore, by representing process fragments as nodes in a spatial proximity graph, the framework will significantly increase the recall of dystrophic/shattered cells lacking a unified soma anchor, yielding a sensitive, continuous activation index for evaluating drug and PBM therapeutic efficacy.
+It is hypothesized that transitioning from soma-centric bounding boxes to automated cyan contour cell extraction and modeling the spatial neighborhood of fragmented distal processes using Graph Neural Networks (GNNs) will resolve the confusion between Quiescent / Resting and Senescent / Resolution states by capturing the full cellular silhouette. Furthermore, by representing process fragments as nodes in a spatial proximity graph, the framework will significantly increase the recall of dystrophic/shattered cells lacking a unified soma anchor, yielding a sensitive, continuous activation index for evaluating drug and PBM therapeutic efficacy.
 
 ---
 
 ## 3. Research Objectives
 
-* **Objective 1 (Active Bulk Dataset Labeling & Benchmark Construction)**: Establish a gold-standard benchmark dataset of 10,000 to 50,000 single-cell crops labeled across 5 morphological activation states (*Resting*, *Surveilling*, *Activated*, *Resolution*, *Dystrophic*) using SSL feature space pre-clustering (HDBSCAN), 1-click bulk cluster verification, and entropy-driven uncertainty sampling $H(x)$ indexed in MongoDB.
+* **Objective 1 (Active Bulk Dataset Labeling & Benchmark Construction)**: Establish a gold-standard benchmark dataset of 10,000 to 50,000 single-cell crops labeled across 5 morphological activation states (*Quiescent / Resting*, *Patrolling / Surveilling*, *Reactive / Activated*, *Senescent / Resolution*, *Dystrophic*) using SSL feature space pre-clustering (HDBSCAN), 1-click bulk cluster verification, and entropy-driven uncertainty sampling $H(x)$ indexed in MongoDB.
 * **Objective 2 (Boundary Sharpening & Silhouette Extraction)**: Process cyan-contoured single-cell crops using automated boundary sharpening (`boundary_sharpening_pipeline.py`) and CLAHE edge fusion to extract clean, high-fidelity binary silhouette masks.
 * **Objective 3 (Self-Supervised Feature Space)**: Implement a contrastive self-supervised representation learning space (DINOv2 / Masked Autoencoders) fine-tuned on stain-normalized cell crops and masks to separate morphologically subtle activation states.
 * **Objective 4 (Graph Topology Construction)**: Construct spatial proximity graphs connecting soma nodes and process fragment nodes (using pre-trained SSL feature embeddings as node representations), training a Graph Neural Network (GNN) to reconstruct shattered dystrophic cells into unified biological entities.
@@ -101,7 +101,7 @@ Microscopy imaging protocols in our laboratory generate whole-slide tissue image
 Graph Neural Networks (GNNs) model complex non-Euclidean spatial relationships. In neurobiology, representing segmented cellular somas and process fragments as nodes in a spatial proximity graph ($G = (V, E)$) enables Message Passing Neural Networks (MPNNs) or Graph Attention Networks (GATs) to learn topological connectivity. GNNs enable the reconstruction of "shattered" dystrophic microglia—a critical bottleneck in neurodegeneration research.
 
 ### 4.7 Literature Gap & Summary
-Despite rapid progress in deep learning for digital pathology, existing microglial pipelines remain strictly soma-centric and bounding-box constrained. No current framework integrates cyan contour cell extraction with spatial GNN topological modeling to resolve Resting vs. Resolution state confusion or reconstruct fragmented dystrophic cells. This project addresses this critical gap.
+Despite rapid progress in deep learning for digital pathology, existing microglial pipelines remain strictly soma-centric and bounding-box constrained. No current framework integrates cyan contour cell extraction with spatial GNN topological modeling to resolve Quiescent / Resting vs. Senescent / Resolution state confusion or reconstruct fragmented dystrophic cells. This project addresses this critical gap.
 
 ---
 
@@ -109,10 +109,10 @@ Despite rapid progress in deep learning for digital pathology, existing microgli
 
 This project builds directly upon the baseline M.Sc. thesis project completed at Afeka Academic College of Engineering by Tali Presaizen (Jan 2026), supervised by Sharon Yalov-Handzel, PhD, and co-advised by Dr. Lilach Gavish, PhD, MPH.
 
-The baseline study established a soma-centric annotated dataset of 4,874 microglial cells extracted from phase-contrast and fluorescence microscopy images of PBM-treated rat brain slices. The dataset categorized cells into four discrete morphological states: Resting, Surveilling, Activated, and Resolution.
+The baseline study established a soma-centric annotated dataset of 4,874 microglial cells extracted from phase-contrast and fluorescence microscopy images of PBM-treated rat brain slices. The dataset categorized cells into four discrete morphological states: Quiescent / Resting, Patrolling / Surveilling, Reactive / Pro-inflammatory / Activated, and Senescent / Terminal / Resolution.
 
 ![Figure 2: 4 Microglial Morphological Activation Cell States with Side-by-Side Sharpened Silhouette Crops](/Users/dpeleg/local/MicroGlia/scratch/figures/figure3_cell_states_panel.jpg)
-*Figure 2: Dual-crop representation panel across the 4 microglial morphological activation states defined by Presaizen (2026): (A) Quiescent (Resting) [small, circular soma with no branches], (B) Patrolling (Surveilling) [circular/spindle soma with 2 branching podia], (C) Reactive (Activated) [irregular soma with 2-3 podia], and (D) Senescent (Resolution) [ameboid/flat medium-large soma with no podia]. Each state shows the raw RGB crop alongside its isolated binary silhouette crop (`subcell_XXX_sharpened_extracted.jpg`).*
+*Figure 2: Dual-crop representation panel across the 4 microglial morphological activation states defined by Presaizen (2026): (A) Quiescent / Resting [small, circular soma with no branches], (B) Patrolling / Surveilling [circular/spindle soma with 2 branching podia], (C) Reactive / Activated [irregular soma with 2-3 podia], and (D) Senescent / Resolution [ameboid/flat medium-large soma with no podia]. Each state shows the raw RGB crop alongside its isolated binary silhouette crop (`subcell_XXX_sharpened_extracted.jpg`).*
 
 ### 5.1 Morphological Activation State Criteria (Table 1 - Presaizen, 2026)
 
@@ -120,10 +120,10 @@ To establish a rigorous, objective ground truth annotation rubric, Presaizen (20
 
 | Class (State) | Shape | Size | Podia | Boundary | Brightness |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Quiescent (Resting)** | Circular | Small | None | Clear | Dark |
-| **Patrolling (Surveilling)** | Circular / spindle | Small-medium | 2 | Clear | Dark |
-| **Reactive / Pro-inflammatory (Activated)** | Irregular | Small-medium | 2–3 | Intermittent | Intermediate |
-| **Senescent / Terminal (Resolution)** | Ameboid / flat | Medium-large | None | Clear | Bright |
+| **Quiescent / Resting** | Circular | Small | None | Clear | Dark |
+| **Patrolling / Surveilling** | Circular / spindle | Small-medium | 2 | Clear | Dark |
+| **Reactive / Pro-inflammatory / Activated** | Irregular | Small-medium | 2–3 | Intermittent | Intermediate |
+| **Senescent / Terminal / Resolution** | Ameboid / flat | Medium-large | None | Clear | Bright |
 
 *Table 1: Morphological characterization criteria for microglial activation states adapted directly from Presaizen (2026, Figure 1 summary table).*
 
@@ -202,7 +202,7 @@ The proposed research will be executed across six structured project stages over
 
 The framework will be evaluated across three complementary quantitative tiers:
 1. **Segmentation Metrics**: Dice Coefficient, Intersection over Union (IoU), and Boundary-F1 score compared against manual polygonal ground truth.
-2. **Morphological Classification**: Macro-F1 score, Per-class Precision/Recall, and Confusion Matrix analysis across Resting, Surveilling, Activated, Resolution, and Dystrophic states (benchmarked against YOLOv11 baseline F1=0.69).
+2. **Morphological Classification**: Macro-F1 score, Per-class Precision/Recall, and Confusion Matrix analysis across Quiescent / Resting, Patrolling / Surveilling, Reactive / Activated, Senescent / Resolution, and Dystrophic states (benchmarked against YOLOv11 baseline F1=0.69).
 3. **Biological & Clinical Sensitivity**: Pearson correlation ($r$) and Spearman rank ($\rho$) between the computed Activation Index (0–1) and biological pharmacological drug dosage / PBM light fluence ($\text{J/cm}^2$) across tissue slices.
 
 ---
@@ -228,14 +228,14 @@ The framework will be evaluated across three complementary quantitative tiers:
 8. Kim, J., Pavlidis, P., & Vogel Ciernia, A. (2024). Development of a High-Throughput Pipeline to Characterize Microglia Morphological States at a Single-Cell Resolution. *eNeuro*, 11(6), ENEURO.0010-24.2024.
 9. Kirillov, A., Mintun, E., Ravi, N., et al. (2023). Segment Anything. *Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)*, 4015-4026.
 10. Leyh, J., Schafer, M. K., et al. (2021). Microglial morphodynamics in traumatic brain injury and recovery. *Glia*, 69(8), 1950-1965.
-11. Maas, A. I., Menon, D. K., Adelson, P. D., et al. (2017). Traumatic brain injury: integrated approaches to improve prevention, clinical care, and research. The Lancet Neurology, 16(12), 987-1048.
+11. Maas, A. I., Menon, D. K., Adelson, P. D., et al. (2017). Traumatic brain injury: integrated approaches to improve prevention, clinical care, and research. *The Lancet Neurology*, 16(12), 987-1048.
 12. Macenko, M., Niethammer, M., Marron, J. S., et al. (2009). A method for normalizing histology slides for quantitative analysis. *IEEE ISBI*, 1107-1110.
 13. Morera, H., Dave, P., Kolinko, Y., et al. (2024). A novel deep learning-based method for automatic stereology of microglia cells from low magnification images. *Neurotoxicology and Teratology*, 102, 107336.
-14. Oquab, M., Darcet. T., Moutakanni, T., et al. (2023). DINOv2: Learning Robust Visual Features Without Supervision. *arXiv preprint arXiv:2304.07193*.
+14. Oquab, M., Darcet, T., Moutakanni, T., et al. (2023). DINOv2: Learning Robust Visual Features Without Supervision. *arXiv preprint arXiv:2304.07193*.
 15. Pachitariu, M., & Stringer, C. (2024). Cellpose 3.0: accurate segmentation of biological images using foundation models. *Nature Methods*, 21(4), 701-710.
 16. Presaizen, T. (2026). *AI-Powered Microglial Classification for Activation Scoring*. Master's Thesis, School of Data Science: Intelligent Systems, Afeka Academic College of Engineering & Hebrew University of Jerusalem.
 17. Salter, M. W., & Beggs, S. (2014). Sublime microglia: expanding roles for the guardians of the CNS. *Cell*, 158(1), 15-24.
 18. Veličković, P., Cucurull, G., Casanova, A., et al. (2018). Graph Attention Networks. *International Conference on Learning Representations (ICLR)*.
 19. Wolf, S. A., Boddeke, H. W., & Kettenmann, H. (2017). Microglia in Physiology and Pathology. *Physiological Reviews*, 97(4), 1339-1393.
-20. Xiong, H., Zheng, S., Qi, X., Liu, J. (2025). μGlia-Flow, an automatic workflow for microglia segmentation and classification. *Journal of Neuroscience Methods*, 402, 110022.
+20. Xiong, H., Zheng, S., Qi, X., Liu, J. (2025). μGlia-Flow, an automatic workflow for microglia segmentation and classification. *Journal of Neuroscience Methods*, 402, 110022].
 21. Zähringer, A., Vinnakota, J. M., Wertheimer, T., et al. (2025). AIstain: Enhancing microglial phagocytosis analysis through deep learning. *Cell Reports Methods*, 5(11), 101207.
