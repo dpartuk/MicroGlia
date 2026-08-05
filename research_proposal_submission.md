@@ -74,8 +74,8 @@ It is hypothesized that transitioning from soma-centric bounding boxes to automa
 
 * **Objective 1 (Active Bulk Dataset Labeling & Benchmark Construction)**: Establish a gold-standard benchmark dataset of 10,000 to 50,000 single-cell crops labeled across 5 morphological activation states (*Resting*, *Surveilling*, *Activated*, *Resolution*, *Dystrophic*) using SSL feature space pre-clustering (HDBSCAN), 1-click bulk cluster verification, and entropy-driven uncertainty sampling $H(x)$ indexed in MongoDB.
 * **Objective 2 (Boundary Sharpening & Silhouette Extraction)**: Process cyan-contoured single-cell crops using automated boundary sharpening (`boundary_sharpening_pipeline.py`) and CLAHE edge fusion to extract clean, high-fidelity binary silhouette masks.
-* **Objective 3 (Graph Topology Construction)**: Construct spatial proximity graphs connecting soma nodes and process fragment nodes, training a Graph Neural Network (GNN) to reconstruct shattered dystrophic cells into unified biological entities.
-* **Objective 4 (Self-Supervised Feature Space)**: Implement a contrastive self-supervised representation learning space (DINOv2 / Masked Autoencoders) fine-tuned on stain-normalized cell crops and masks to separate morphologically subtle activation states.
+* **Objective 3 (Self-Supervised Feature Space)**: Implement a contrastive self-supervised representation learning space (DINOv2 / Masked Autoencoders) fine-tuned on stain-normalized cell crops and masks to separate morphologically subtle activation states.
+* **Objective 4 (Graph Topology Construction)**: Construct spatial proximity graphs connecting soma nodes and process fragment nodes (using pre-trained SSL feature embeddings as node representations), training a Graph Neural Network (GNN) to reconstruct shattered dystrophic cells into unified biological entities.
 * **Objective 5 (Pharmacological & Experimental Validation)**: Formulate a continuous Multi-Parametric Activation Index (0–1 scale) and validate its sensitivity against experimental pharmacological drug-treated and PBM-irradiated rodent brain slices in collaboration with Dr. Lilach Gavish.
 
 ---
