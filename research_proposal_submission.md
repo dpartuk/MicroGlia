@@ -72,7 +72,7 @@ It is hypothesized that transitioning from soma-centric bounding boxes to automa
 
 ## 3. Research Objectives
 
-* **Objective 1 (Dataset Re-annotation)**: Re-annotate the benchmark dataset using fine polygonal masks to capture distal processes, beaded arborization, and shattered process fragments excluded by YOLO bounding boxes.
+* **Objective 1 (Active Bulk Dataset Labeling & Benchmark Construction)**: Establish a gold-standard benchmark dataset of 10,000 to 50,000 single-cell crops labeled across 5 morphological activation states (*Resting*, *Surveilling*, *Activated*, *Resolution*, *Dystrophic*) using SSL feature space pre-clustering (HDBSCAN), 1-click bulk cluster verification, and entropy-driven uncertainty sampling $H(x)$ indexed in MongoDB.
 * **Objective 2 (Boundary Sharpening & Silhouette Extraction)**: Process cyan-contoured single-cell crops using automated boundary sharpening (`boundary_sharpening_pipeline.py`) and CLAHE edge fusion to extract clean, high-fidelity binary silhouette masks.
 * **Objective 3 (Graph Topology Construction)**: Construct spatial proximity graphs connecting soma nodes and process fragment nodes, training a Graph Neural Network (GNN) to reconstruct shattered dystrophic cells into unified biological entities.
 * **Objective 4 (Self-Supervised Feature Space)**: Implement a contrastive self-supervised representation learning space (DINOv2 / Masked Autoencoders) fine-tuned on stain-normalized cell crops and masks to separate morphologically subtle activation states.

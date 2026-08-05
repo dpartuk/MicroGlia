@@ -286,7 +286,7 @@ def create_research_proposal():
 
     # 3. RESEARCH OBJECTIVES
     add_h1("3. Research Objectives")
-    add_bullet(" Re-annotate the benchmark dataset using fine polygonal masks to capture distal processes, beaded arborization, and shattered process fragments excluded by YOLO bounding boxes.", "Objective 1 (Dataset Re-annotation):")
+    add_bullet(" Establish a gold-standard benchmark dataset of 10,000 to 50,000 single-cell crops labeled across 5 morphological activation states (Resting, Surveilling, Activated, Resolution, Dystrophic) using SSL feature space pre-clustering (HDBSCAN), 1-click bulk cluster verification, and entropy-driven uncertainty sampling H(x) indexed in MongoDB.", "Objective 1 (Active Bulk Dataset Labeling & Benchmark Construction):")
     add_bullet(" Process cyan-contoured single-cell crops using automated boundary sharpening (boundary_sharpening_pipeline.py) and CLAHE edge fusion to extract clean, high-fidelity binary silhouette masks.", "Objective 2 (Boundary Sharpening & Silhouette Extraction):")
     add_bullet(" Construct spatial proximity graphs connecting soma nodes and process fragment nodes, training a Graph Neural Network (GNN) to reconstruct shattered dystrophic cells into unified biological entities.", "Objective 3 (Graph Topology Construction):")
     add_bullet(" Implement a contrastive self-supervised representation learning space (DINOv2 / Masked Autoencoders) fine-tuned on stain-normalized cell crops and masks to separate morphologically subtle activation states.", "Objective 4 (Self-Supervised Feature Space):")
@@ -447,7 +447,7 @@ def create_research_proposal():
     out_downloads = '/Users/dpeleg/Downloads/research-proposal-final.docx'
     doc.save(out_local)
     doc.save(out_downloads)
-    print(f"Updated Objective 2 DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
+    print(f"Updated Objective 1 DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
 
 if __name__ == "__main__":
     create_research_proposal()
