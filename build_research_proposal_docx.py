@@ -242,22 +242,22 @@ def create_research_proposal():
 
     doc.add_page_break()
 
-    # 1. MOTIVATION (REWRITTEN FROM SCRATCH WITH EXPLICIT CITATIONS & BROADER CONTEXT)
+    # 1. MOTIVATION (HIGHLIGHTING DR. LILACH GAVISH COLLABORATION & PHARMACOLOGICAL DRUG IMPACT)
     add_h1("1. Motivation")
-    add_body("Traumatic Brain Injury (TBI) represents a major global health crisis, affecting an estimated 69 million individuals annually and standing as a leading cause of long-term disability and mortality worldwide (Dewan et al., 2018; Maas et al., 2017). Beyond acute primary mechanical tissue disruption, TBI initiates a progressive secondary injury cascade characterized by sustained neuroinflammation, blood-brain barrier breakdown, and metabolic crisis. In military populations, mild TBI (mTBI) resulting from blast acceleration is especially prevalent, impacting 15%–22% of deployed service members and frequently predisposing patients to chronic neurodegenerative sequelae, mood disturbances, and post-traumatic stress disorder (PTSD) (Hoge et al., 2008; Okie, 2005).")
-    add_body("Microglia—the primary resident immune macrophages of the Central Nervous System (CNS)—are the central cellular orchestrators of this neuroinflammatory response (Salter & Beggs, 2014; Wolf et al., 2017). Under homeostatic conditions, resting microglia display a highly arborized morphology with small somas and delicate, dynamic processes that continuously scan the parenchymal microenvironment. Upon encountering mechanical or biochemical stress, microglia undergo rapid morphological metamorphosis, retracting process arbors, enlarging soma volumes, and transitioning into ameboid, hypertrophic, or dystrophic states. Because microglial structural shifts directly mirror their functional polarization (pro-inflammatory M1-like vs. pro-resolving M2-like states), quantitative morphometric profiling provides a critical window into post-injury tissue pathophysiology and therapeutic response (Leyh et al., 2021).")
-    add_body("Photobiomodulation (PBM) therapy, which delivers low-level red to near-infrared light (600–1000 nm), has emerged as a promising non-invasive neuroprotective intervention for TBI (Hamblin, 2018; Gavish & Houreld, 2019). By stimulating mitochondrial cytochrome c oxidase, PBM boosts ATP production, mitigates oxidative stress, and promotes microglial polarization toward neurorepair phenotypes. However, evaluating PBM therapeutic efficacy across brain tissue slices requires objective, high-throughput, and spatially sensitive microglial quantification methods—a capability currently lacking in standard digital pathology protocols.")
-    add_body("Recent baseline research at our institution by Presaizen (2026) established a 4-class soma-centric classification pipeline using YOLOv11 and DINOv2 on rat brain slices. While providing an initial proof-of-concept, Presaizen (2026) highlighted fundamental computational limitations: bounding-box object detectors (64x64 crops) restrict analysis to the central soma, discarding up to 70% of distal process arborization. Consequently, bounding-box models suffer from biological misclassification between Resting and Resolution states and fail to detect shattered dystrophic microglia lacking a central soma anchor. Addressing these limitations through a topological, foundation-model-guided AI framework is essential for establishing unbiased biomarkers of neuroinflammation and optimizing PBM light therapy protocols.")
+    add_body("Traumatic Brain Injury (TBI) represents a major global health crisis, affecting an estimated 69 million individuals annually and standing as a leading cause of long-term disability and mortality worldwide (Dewan et al., 2018; Maas et al., 2017). Beyond acute primary mechanical tissue disruption, TBI initiates a progressive secondary injury cascade characterized by sustained neuroinflammation, blood-brain barrier breakdown, and metabolic crisis. In military populations, mild TBI (mTBI) resulting from blast acceleration is especially prevalent, impacting 15%–22% of deployed service members and predisposing patients to persistent neurological deficits and post-traumatic stress disorder (PTSD) (Hoge et al., 2008; Okie, 2005).")
+    add_body("Microglia—the primary resident immune macrophages of the Central Nervous System (CNS)—are the central cellular orchestrators of this neuroinflammatory response (Salter & Beggs, 2014; Wolf et al., 2017). Under homeostatic conditions, surveilling microglia display a highly ramified morphology with small somas and delicate, dynamic processes that continuously scan the parenchymal microenvironment. Upon encountering mechanical or biochemical stress, microglia undergo rapid morphological metamorphosis, retracting process arbors, enlarging soma volumes, and transitioning into ameboid, hypertrophic, or dystrophic states. Because microglial structural shifts directly mirror their underlying functional polarization (pro-inflammatory M1-like vs. pro-resolving M2-like states), quantitative morphometry provides a critical, non-destructive window into post-injury tissue pathophysiology (Leyh et al., 2021).")
+    add_body("In translational pharmacology and neuro-therapeutics, evaluating the impact of candidate therapeutic drugs and physical modalities—such as Photobiomodulation (PBM) light therapy—on microglial activation and morphological recovery is paramount (Gavish & Houreld, 2019; Hamblin, 2018). In ongoing collaborative research directed by Dr. Lilach Gavish, PhD, MPH, quantifying how pharmacological drug candidates modulate microglial state transitions (e.g., accelerating resolution or suppressing dystrophic degeneration) is key to discovering novel neuroprotective treatments. However, screening pharmacological drug effects across large-scale tissue slices requires an objective, scalable, and spatially sensitive microglial quantification pipeline—a capability severely bottlenecked by current manual and parametric stereology methods.")
+    add_body("Recent baseline research at our institution by Presaizen (2026) established a 4-class soma-centric classification pipeline using YOLOv11 and DINOv2 on rat brain slices. While providing an initial proof-of-concept, Presaizen (2026) highlighted fundamental computational limitations: bounding-box object detectors (64x64 crops) restrict analysis to the central soma, discarding up to 70% of distal process arborization. Consequently, bounding-box models suffer from biological misclassification between Resting and Resolution states and fail to detect shattered dystrophic microglia lacking a central soma anchor. Addressing these limitations through a topological, foundation-model-guided AI framework is essential for establishing unbiased morphometric biomarkers to evaluate drug and PBM therapeutic efficacy in translational neurobiology.")
 
     # 2. RESEARCH QUESTION AND HYPOTHESIS
     add_h1("2. Research Question and Hypothesis")
     add_h2("2.1 Research Questions")
     add_bullet(" Can foundation-model segmentation (e.g., Cellpose 3.0 / SAM-Microscopy) combined with Graph Neural Networks (GNNs) overcome soma-centric bounding box limitations to accurately capture fragmented microglial arborization?", "RQ1:")
     add_bullet(" Does incorporating spatial process topology resolve the persistent biological confusion between Resting and Resolution microglial states?", "RQ2:")
-    add_bullet(" Can a continuous, multi-parametric activation index derived from graph topological representations provide superior sensitivity in quantifying Photobiomodulation (PBM) therapeutic response compared to standard discrete classification?", "RQ3:")
+    add_bullet(" Can a continuous, multi-parametric activation index derived from graph topological representations provide superior sensitivity in quantifying pharmacological drug treatments and Photobiomodulation (PBM) therapeutic responses compared to standard discrete classification?", "RQ3:")
 
     add_h2("2.2 Research Hypothesis")
-    add_body("It is hypothesized that transitioning from soma-centric bounding boxes to foundation-model-based polygonal segmentation (Cellpose 3.0 / SAM-Microscopy) and modeling the spatial neighborhood of fragmented distal processes using Graph Neural Networks (GNNs) will resolve the confusion between Resting and Resolution states by capturing the full cellular silhouette. Furthermore, by representing process fragments as nodes in a spatial proximity graph, the framework will significantly increase the recall of dystrophic/shattered cells lacking a unified soma anchor, yielding a sensitive, continuous activation index for PBM evaluation.")
+    add_body("It is hypothesized that transitioning from soma-centric bounding boxes to foundation-model-based polygonal segmentation (Cellpose 3.0 / SAM-Microscopy) and modeling the spatial neighborhood of fragmented distal processes using Graph Neural Networks (GNNs) will resolve the confusion between Resting and Resolution states by capturing the full cellular silhouette. Furthermore, by representing process fragments as nodes in a spatial proximity graph, the framework will significantly increase the recall of dystrophic/shattered cells lacking a unified soma anchor, yielding a sensitive, continuous activation index for evaluating drug and PBM therapeutic efficacy.")
 
     # 3. RESEARCH OBJECTIVES
     add_h1("3. Research Objectives")
@@ -265,15 +265,15 @@ def create_research_proposal():
     add_bullet(" Deploy and fine-tune foundation segmentation models (Cellpose 3.0 and SAM-Microscopy) to extract full microglial silhouettes without relying on a central soma anchor.", "Objective 2 (Foundation Segmentation):")
     add_bullet(" Construct spatial proximity graphs connecting soma nodes and process fragment nodes, training a Graph Neural Network (GNN) to reconstruct shattered dystrophic cells into unified biological entities.", "Objective 3 (Graph Topology Construction):")
     add_bullet(" Implement a contrastive self-supervised representation learning space (DINOv2 / Masked Autoencoders) fine-tuned on segmented microglial masks to separate morphologically subtle activation states.", "Objective 4 (Self-Supervised Feature Space):")
-    add_bullet(" Formulate a continuous Multi-Parametric Activation Index (0–1 scale) and validate its sensitivity against experimental PBM-treated and LPS-challenged rodent TBI brain slices.", "Objective 5 (Clinical & Experimental Validation):")
+    add_bullet(" Formulate a continuous Multi-Parametric Activation Index (0–1 scale) and validate its sensitivity against experimental pharmacological drug-treated, PBM-irradiated, and LPS-challenged rodent brain slices in collaboration with Dr. Lilach Gavish.", "Objective 5 (Pharmacological & Experimental Validation):")
 
     # 4. LITERATURE REVIEW
     add_h1("4. Literature Review")
     add_h2("4.1 Microglia and Neuroinflammation")
     add_body("Microglia constitute 10%–15% of all glial cells in the CNS and serve as the frontline defense against traumatic, ischemic, and neurodegenerative insults. Under homeostatic conditions, surveilling microglia display an arborized morphology with delicate processes extending tens of micrometers from a small soma. Following TBI, inflammatory signaling cascades induce rapid structural metamorphosis: retracting processes, swelling somas, and transitioning into activated ameboid macrophages capable of phagocytosis.")
 
-    add_h2("4.2 Photobiomodulation (PBM) Therapy")
-    add_body("Photobiomodulation (PBM) applies low-level light in the red to near-infrared spectrum (600–1000 nm) to modulate cellular function. In TBI models, PBM photon absorption by mitochondrial cytochrome c oxidase boosts ATP synthesis, attenuates reactive oxygen species (ROS), and shifts microglial polarization from pro-inflammatory (M1-like) to pro-resolving (M2-like) phenotypes. Quantifying these morphodynamic shifts across brain slices is essential for optimizing PBM therapeutic protocols.")
+    add_h2("4.2 Pharmacological & Photobiomodulation (PBM) Therapeutics")
+    add_body("Quantifying microglial morphological response to candidate anti-inflammatory drugs and Photobiomodulation (PBM) therapy is central to translational neuro-therapeutics (Gavish & Houreld, 2019; Hamblin, 2018). In rodent injury models, therapeutic drug compounds and PBM light irradiation stimulate mitochondrial bioenergetics, attenuate reactive oxygen species (ROS), and accelerate microglial polarization from pro-inflammatory (M1-like) to pro-resolving (M2-like) phenotypes. High-throughput quantitative morphometry allows drug discovery researchers to measure dose-dependent morphological shifts across entire brain slices.")
 
     add_h2("4.3 Morphometric Analysis of Microglia")
     add_body("Traditional microglial morphometry relies on manual thresholding and skeletonization (e.g., ImageJ FracLac or HALO modules). Key quantitative metrics include fractal dimension (D_f), lacunarity, soma-to-cell area ratio, total process length, and number of branch endpoints. While informative, manual and parametric morphometry suffers from severe inter-rater variability, labor intensity, and failure in dense tissue slices with overlapping processes.")
@@ -337,11 +337,11 @@ def create_research_proposal():
          "Generate rich, low-dimensional morphological embeddings robust to staining and optical variations.",
          "4 weeks"),
         ("Stage 5 – Multi-Parametric Activation Index & Model Evaluation",
-         "Develop a continuous Multi-Parametric Activation Index (0–1 scale) aggregating graph embeddings. Perform comprehensive ablation studies comparing against YOLOv11+DINOv2 baselines.",
+         "Develop a continuous Multi-Parametric Activation Index (0–1 scale) aggregating graph embeddings. Perform comprehensive ablation studies comparing against YOLOv11+DINOv2 baselines across drug-treated and PBM-irradiated brain slices.",
          "Validate model performance across discrete classification (4-class F1) and continuous activation scoring.",
          "5 weeks"),
         ("Stage 6 – Thesis Writing, Validation & Defense Preparation",
-         "Perform statistical sensitivity validation on PBM-treated TBI rat brain slices, write the final M.Sc. thesis document, prepare peer-reviewed publication manuscripts, and defend the thesis.",
+         "Perform statistical sensitivity validation on drug-treated and PBM-irradiated rat brain slices with Dr. Lilach Gavish, write the final M.Sc. thesis document, prepare peer-reviewed publication manuscripts, and defend the thesis.",
          "Complete and submit the final M.Sc. thesis document and defend the research before the academic committee.",
          "4 weeks")
     ]
@@ -357,14 +357,14 @@ def create_research_proposal():
     add_body("The framework will be evaluated across three complementary quantitative tiers:")
     add_bullet(" Dice Coefficient, Intersection over Union (IoU), and Boundary-F1 score compared against manual polygonal ground truth.", "1. Segmentation Metrics:")
     add_bullet(" Macro-F1 score, Per-class Precision/Recall, and Confusion Matrix analysis across Resting, Surveilling, Activated, and Resolution states (benchmarked against YOLOv11 baseline F1=0.69).", "2. Morphological Classification:")
-    add_bullet(" Pearson correlation ($r$) and Spearman rank ($\\rho$) between the computed Activation Index (0–1) and biological PBM light dosage ($J/cm^2$) across TBI tissue slices.", "3. Biological & Clinical Sensitivity:")
+    add_bullet(" Pearson correlation ($r$) and Spearman rank ($\\rho$) between the computed Activation Index (0–1) and biological pharmacological drug dosage / PBM light fluence ($J/cm^2$) across tissue slices.", "3. Biological & Clinical Sensitivity:")
 
     # 9. EXPECTED CONTRIBUTION
     add_h1("9. Expected Scientific and Technological Contribution")
     add_bullet(" First AI framework combining foundation-model segmentation with Graph Neural Networks for microglial morphometry.", "1. Novel Methodological Paradigm:")
     add_bullet(" Solves the critical bottleneck of detecting shattered dystrophic microglia lacking a central soma anchor.", "2. Dystrophic Microglia Reconstruction:")
     add_bullet(" Provides an open-source, fragment-first polygonal dataset of 4,874 microglial cells for the research community.", "3. Open-Source Benchmark Dataset:")
-    add_bullet(" Delivers a scalable, reproducible tool for quantifying Photobiomodulation (PBM) neuroprotective efficacy in TBI.", "4. Translational Neurobiology Impact:")
+    add_bullet(" Delivers a scalable, reproducible tool for quantifying pharmacological drug impact and Photobiomodulation (PBM) neuroprotective efficacy in translational neurobiology under the direction of Dr. Lilach Gavish.", "4. Translational Pharmacology Impact:")
 
     # 10. REFERENCES
     add_h1("10. References")
@@ -405,7 +405,7 @@ def create_research_proposal():
     out_downloads = '/Users/dpeleg/Downloads/research-proposal-final.docx'
     doc.save(out_local)
     doc.save(out_downloads)
-    print(f"Updated Original Motivation DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
+    print(f"Updated Pharmacological Drug Impact DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
 
 if __name__ == "__main__":
     create_research_proposal()
