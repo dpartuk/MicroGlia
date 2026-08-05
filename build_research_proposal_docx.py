@@ -202,6 +202,7 @@ def create_research_proposal():
         ("MAE", "Masked Autoencoder"),
         ("mAP", "Mean Average Precision"),
         ("ML", "Machine Learning"),
+        ("MongoDB", "Document-Oriented Database for JSON Metadata & Label Indexing"),
         ("MPNN", "Message Passing Neural Network"),
         ("PBM", "Photobiomodulation Therapy"),
         ("ROS", "Reactive Oxygen Species"),
@@ -304,18 +305,18 @@ def create_research_proposal():
 
     # 6. PROPOSED METHODOLOGY & TWO-THEME ARCHITECTURE
     add_h1("6. Proposed Methodology & Project Architecture")
-    add_body("The project methodology is structured into two core operational themes, ensuring clean separation between data engineering / self-supervised representation learning and downstream model training / pharmacological evaluation:")
+    add_body("The project architecture is structured into two core operational themes, ensuring clean separation between data engineering / self-supervised representation learning and downstream model training / pharmacological evaluation:")
 
     add_h2("THEME 1: Data Preparation, Cleaning, Aggregation, SSL, Storage & Labeling")
     add_bullet(" Automated Whole-Slide Cell Extraction & Cleaning (CLAHE + Scharr/Canny edge fusion + contained sub-cell IoU deduplication).", "Stage 1.1:")
-    add_bullet(" Dual-Crop Storage & Dataset Aggregation (Raw RGB crops + binary silhouette masks for 1,000,000+ extracted crops).", "Stage 1.2:")
+    add_bullet(" Hybrid Storage Architecture (MongoDB JSON document store for metadata, spatial BBoxes, and active labels + HDF5 binary containers sharded by original Image ID).", "Stage 1.2:")
     add_bullet(" Lab Stain Normalization Engine (Macenko optical density matrix factorization BEFORE SSL pre-training to eliminate IHC color shifts).", "Stage 1.3:")
     add_bullet(" In-Domain Self-Supervised Pre-Training (DINOv2 self-distillation + MAE patch reconstruction on 1M+ stain-normalized crops).", "Stage 1.4:")
     add_bullet(" Unsupervised Feature Space Pre-Clustering (UMAP + HDBSCAN partitioning embeddings into ~100 morphometric clusters).", "Stage 1.5:")
-    add_bullet(" Active Bulk Labeling & Uncertainty Sampling (1-click bulk cluster verification + top 5% entropy expert sampling for 10k–50k labeled cells).", "Stage 1.6:")
+    add_bullet(" Active Bulk Labeling & Uncertainty Sampling (MongoDB-indexed 1-click bulk cluster verification + top 5% entropy expert sampling).", "Stage 1.6:")
 
     add_h2("THEME 2: Training, Classification, Counting & Evaluation")
-    add_bullet(" Deterministic Spatial Graph Construction (Connecting Soma Nodes V_soma and Fragment Nodes V_fragment using fixed physical pixel scale).", "Stage 2.1:")
+    add_bullet(" Deterministic Spatial Graph Construction (Connecting Soma Nodes V_soma and Fragment Nodes V_fragment via Delaunay/k-NN edges using spatial BBox coordinates).", "Stage 2.1:")
     add_bullet(" Multi-Task Joint Model Training (Pre-trained SSL DINOv2 ViT backbone + GATv2 Graph Encoder trained with Focal + Contrastive + Reconstruction loss).", "Stage 2.2:")
     add_bullet(" Whole-Slide High-Throughput Inference & Seam NMS Deduplication (Parallel overlapping tile inference + border NMS).", "Stage 2.3:")
     add_bullet(" Per-State Cell Counting & Continuous Activation Index Computation (Computing discrete 5-state counts and 0.00–1.00 continuous Activation Score).", "Stage 2.4:")
@@ -326,16 +327,16 @@ def create_research_proposal():
     add_body("The proposed research will be executed across six structured project stages over a total estimated duration of 26 weeks (~6.5 months), adhering to the departmental proposal guidelines:")
 
     stages_data = [
-        ("Stage 1 – Theme 1: Dataset Extraction & Stain Normalization",
-         "Run automated cell extraction (extract_cells.py) across whole-slide microscopy images. Perform Macenko stain normalization on all 1,000,000+ extracted cell crops to standardize IHC color palettes.",
-         "Establish a clean, stain-normalized single-cell crop repository.",
+        ("Stage 1 – Theme 1: Dataset Extraction, MongoDB Setup & Stain Normalization",
+         "Run automated cell extraction (extract_cells.py). Set up MongoDB document store for metadata, spatial BBoxes, and active labels. Perform Macenko stain normalization on all 1,000,000+ cell crops sharded by Image ID.",
+         "Establish a clean, stain-normalized single-cell crop repository indexed in MongoDB.",
          "4 weeks"),
         ("Stage 2 – Theme 1: SSL Pre-Training & Active Cluster Labeling",
-         "Pre-train DINOv2 and MAE backbones on 1M+ stain-normalized crops. Run HDBSCAN clustering and annotate 10,000–50,000 cells using active bulk cluster verification in CVAT.",
+         "Pre-train DINOv2 and MAE backbones on 1M+ stain-normalized crops. Run HDBSCAN clustering and annotate 10,000–50,000 cells using MongoDB-driven active bulk cluster verification in CVAT.",
          "Deploy a domain-specific SSL feature encoder and establish a gold-standard labeled benchmark dataset.",
          "4 weeks"),
         ("Stage 3 – Theme 2: Spatial GNN Graph Construction & Topology",
-         "Construct physical spatial proximity graphs (G=(V,E)) connecting soma nodes and process fragment nodes. Implement and train GATv2/MPNN GNN architectures for topological message passing.",
+         "Construct physical spatial proximity graphs (G=(V,E)) connecting soma nodes and process fragment nodes using BBox coordinates. Implement and train GATv2/MPNN GNN architectures.",
          "Reconstruct shattered dystrophic microglia into single biological entities and capture full arborization topology.",
          "5 weeks"),
         ("Stage 4 – Theme 2: Multi-Task Joint Model Fine-Tuning",
@@ -413,7 +414,7 @@ def create_research_proposal():
     out_downloads = '/Users/dpeleg/Downloads/research-proposal-final.docx'
     doc.save(out_local)
     doc.save(out_downloads)
-    print(f"Updated 2-Theme DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
+    print(f"Updated MongoDB DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
 
 if __name__ == "__main__":
     create_research_proposal()

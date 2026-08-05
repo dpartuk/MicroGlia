@@ -29,6 +29,7 @@
 | **MAE** | Masked Autoencoder |
 | **mAP** | Mean Average Precision |
 | **ML** | Machine Learning |
+| **MongoDB** | Document-Oriented Database for JSON Metadata & Label Indexing |
 | **MPNN** | Message Passing Neural Network |
 | **PBM** | Photobiomodulation Therapy |
 | **ROS** | Reactive Oxygen Species |
@@ -123,16 +124,16 @@ The project architecture is structured into two core operational themes, ensurin
 
 ### THEME 1: Data Preparation, Cleaning, Aggregation, SSL, Storage & Labeling
 * **Stage 1.1 (Automated Cell Extraction & Cleaning)**: Execute `extract_cells.py` / `boundary_sharpening_pipeline.py` using Multi-Tile CLAHE ($8\times8$ grid), Scharr/Canny edge fusion, and contained sub-cell IoU deduplication.
-* **Stage 1.2 (Dual-Crop Storage & Dataset Aggregation)**: Save paired Raw RGB crops ($128\times128$) and binary silhouette masks for 1,000,000+ extracted crops.
+* **Stage 1.2 (Hybrid Database & Image Container Storage)**: Deploy **MongoDB** as a document store indexing JSON metadata, spatial BBoxes (`[x, y, w, h]`), cluster IDs, and active labels. Store binary cell crops, masks, and DINOv2 embeddings in HDF5 containers sharded directly by original whole-slide Image ID (`IMAGE_ID_cells.h5`).
 * **Stage 1.3 (Lab Stain Normalization Engine)**: Apply Macenko optical density matrix factorization to all 1M+ cell crops BEFORE SSL pre-training to eliminate IHC color shifts.
 * **Stage 1.4 (In-Domain Self-Supervised Pre-Training)**: Pre-train ViT-Base on 1M+ stain-normalized crops using DINOv2 self-distillation and MAE patch reconstruction.
 * **Stage 1.5 (Unsupervised Feature Space Pre-Clustering)**: Reduce SSL embeddings using UMAP and cluster with HDBSCAN/k-Means into ~100 morphometric clusters.
-* **Stage 1.6 (Active Bulk Labeling & Uncertainty Sampling)**: Annotate 10k–50k cells using 1-click bulk cluster verification + top 5% entropy expert sampling.
+* **Stage 1.6 (Active Bulk Labeling & Uncertainty Sampling)**: Annotate 10k–50k cells using MongoDB-driven 1-click bulk cluster verification + top 5% entropy expert sampling.
 
 ### THEME 2: Training, Classification, Counting & Evaluation
-* **Stage 2.1 (Deterministic Spatial Graph Construction)**: Connect Soma Nodes ($V_{\text{soma}}$) and Fragment Nodes ($V_{\text{fragment}}$) via Delaunay/k-NN edges using fixed lab pixel scale ($\mu\text{m/pixel}$, $d_{ij} \le 35\,\mu\text{m}$).
-* **Stage 2.2 (Multi-Task Joint Model Training)**: Train a joint network combining pre-trained DINOv2 SSL ViT backbone + GATv2 Graph Encoder using Focal + Contrastive + Reconstruction loss.
-* **Stage 2.3 (Whole-Slide High-Throughput Inference & Seam NMS)**: Tile gigapixel images into overlapping $1024\times1024$ regions, run parallel inference, and apply Non-Maximum Suppression (NMS, $IoU>0.5$) across tile seams.
+* **Stage 2.1 (Deterministic Spatial Graph Construction)**: Connect Soma Nodes ($V_{\text{soma}}$) and Fragment Nodes ($V_{\text{fragment}}$) via Delaunay/k-NN edges using spatial BBox coordinates (`[x, y, w, h]`) and fixed lab pixel scale ($\mu\text{m/pixel}$, $d_{ij} \le 35\,\mu\text{m}$).
+* **Stage 2.2 (Multi-Task Joint Model Training)**: Train a joint network combining pre-trained DINOv2 SSL ViT backbone + GATv2 Graph Encoder trained with Focal + Contrastive + Reconstruction loss.
+* **Stage 2.3 (Whole-Slide High-Throughput Inference & Seam NMS)**: Tile gigapixel images into overlapping $1024\times1024$ regions, run parallel inference, and apply BBox-driven Non-Maximum Suppression (NMS, $IoU>0.5$) across tile seams.
 * **Stage 2.4 (Per-State Cell Counting & Continuous Activation Index)**: Output discrete 5-state counts and compute continuous Activation Index ($0.00$–$1.00$).
 * **Stage 2.5 (Pharmacological Drug & PBM Response Analytics Platform)**: Calculate Pearson $r$, Spearman $\rho$, and ANOVA correlating activation scores against candidate drug dosage levels and PBM light fluence ($J/\text{cm}^2$) for Dr. Lilach Gavish's screening pipeline.
 
@@ -142,18 +143,18 @@ The project architecture is structured into two core operational themes, ensurin
 
 The proposed research will be executed across six structured project stages over a total estimated duration of **26 weeks (~6.5 months)**, adhering to the departmental proposal guidelines:
 
-### Stage 1 – Theme 1: Dataset Extraction & Stain Normalization
-* **Task**: Run automated cell extraction across whole-slide microscopy images. Perform Macenko stain normalization on all 1,000,000+ extracted cell crops BEFORE SSL pre-training to standardize IHC color palettes.
-* **Goal**: Establish a clean, stain-normalized single-cell crop repository.
+### Stage 1 – Theme 1: Dataset Extraction, MongoDB Setup & Stain Normalization
+* **Task**: Run automated cell extraction (`extract_cells.py`). Set up MongoDB document store for JSON metadata, spatial BBoxes (`[x, y, w, h]`), and active labels. Perform Macenko stain normalization on all 1,000,000+ cell crops sharded by original Image ID (`IMAGE_ID_cells.h5`).
+* **Goal**: Establish a clean, stain-normalized single-cell crop repository indexed in MongoDB.
 * **Estimated Duration**: 4 weeks
 
 ### Stage 2 – Theme 1: SSL Pre-Training & Active Cluster Labeling
-* **Task**: Pre-train DINOv2 and MAE backbones on 1M+ stain-normalized crops. Run HDBSCAN clustering and annotate 10,000–50,000 cells using active bulk cluster verification in CVAT.
+* **Task**: Pre-train DINOv2 and MAE backbones on 1M+ stain-normalized crops. Run HDBSCAN clustering and annotate 10,000–50,000 cells using MongoDB-driven active bulk cluster verification in CVAT.
 * **Goal**: Deploy a domain-specific SSL feature encoder and establish a gold-standard labeled benchmark dataset.
 * **Estimated Duration**: 4 weeks
 
 ### Stage 3 – Theme 2: Spatial GNN Graph Construction & Topology
-* **Task**: Construct physical spatial proximity graphs ($G=(V,E)$) connecting soma nodes and process fragment nodes. Implement and train GATv2/MPNN GNN architectures for topological message passing.
+* **Task**: Construct physical spatial proximity graphs ($G=(V,E)$) connecting soma nodes and process fragment nodes using BBox spatial coordinates (`[x, y, w, h]`). Implement and train GATv2/MPNN GNN architectures.
 * **Goal**: Reconstruct shattered dystrophic microglia into single biological entities and capture full arborization topology.
 * **Estimated Duration**: 5 weeks
 
@@ -163,7 +164,7 @@ The proposed research will be executed across six structured project stages over
 * **Estimated Duration**: 4 weeks
 
 ### Stage 5 – Theme 2: High-Throughput Whole-Slide Inference Engine
-* **Task**: Build the whole-slide inference pipeline with overlapping $1024\times1024$ tile processing, border Non-Maximum Suppression (NMS), per-state counting, and continuous Activation Index ($0.00$–$1.00$) computation.
+* **Task**: Build the whole-slide inference pipeline with overlapping $1024\times1024$ tile processing, BBox-driven Non-Maximum Suppression (NMS), per-state counting, and continuous Activation Index ($0.00$–$1.00$) computation.
 * **Goal**: Deliver a fast, automated whole-slide cell counting engine.
 * **Estimated Duration**: 5 weeks
 
