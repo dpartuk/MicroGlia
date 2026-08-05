@@ -7,9 +7,9 @@
 
 **Goal**: Automatically segment, classify, and count microglial cells across discrete morphological activation states (*Resting*, *Surveilling*, *Activated*, *Resolution*, *Dystrophic*) in large microscopy tissue images, computing both per-state cell counts and an image-level continuous Activation Index.
 
-**Input Scale**: Large-scale tissue section images containing hundreds of cyan-contoured cells per slice, yielding $100,000+$ extracted single-cell crops.
+**Input Scale**: Large-scale tissue section images yielding **1,000,000+ extracted unlabeled single-cell crops**.
 
-**Annotation Plan**: Annotating $10,000+$ to $50,000+$ extracted single cells prior to model training.
+**Core Learning Strategy**: **Self-Supervised Pre-Training (SSL via DINOv2 / MAE)** on millions of unlabeled cells, followed by downstream fine-tuning on $10,000+$ to $50,000+$ labeled cells.
 
 ---
 
@@ -17,16 +17,16 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ PHASE 1: Semi-Supervised Active Annotation (10k–50k Cells)                 │
-│   • DINOv2 Unsupervised Pre-Clustering (k-Means/HDBSCAN)                     │
-│   • Cluster-Wise Bulk Annotations + Active Learning Uncertainty Sampling    │
+│ PHASE 1: SSL Pre-Training on 1,000,000+ Unlabeled Cell Crops (DINOv2 / MAE) │
+│   • Masked Autoencoder (MAE): Reconstruct 75%-85% masked cell patches      │
+│   • DINOv2 Self-Distillation: Learn stain- & rotation-invariant features   │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ PHASE 2: Dual-Crop Preprocessing & Feature Embedding Space                   │
-│   • Crop Pair Storage (Original RGB + Binary Silhouette Mask)              │
-│   • Contrastive DINOv2 / Masked Autoencoder (MAE) Fine-Tuning               │
+│ PHASE 2: Semi-Supervised Active Annotation (10k–50k Labeled Cells)          │
+│   • DINOv2 Feature Space Clustering (k-Means/HDBSCAN)                      │
+│   • Cluster-Wise Bulk Annotations + Active Learning Uncertainty Sampling    │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │
                                        ▼
@@ -38,8 +38,8 @@
                                        │
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ PHASE 4: Multi-Task Model Training                                          │
-│   • Joint DINOv2 Vision Transformer + GATv2 Graph Attention Architecture    │
+│ PHASE 4: Multi-Task Model Fine-Tuning                                       │
+│   • Pre-trained SSL Encoder Backbone + GATv2 Graph Attention Head           │
 │   • Focal Classification Loss + Dystrophic Fragment Reconstruction Loss     │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │
@@ -60,32 +60,38 @@
 
 ---
 
-## Phase 1: High-Throughput Semi-Supervised Active Annotation Strategy
+## Phase 1: Self-Supervised Learning (SSL) Pre-Training on Millions of Unlabeled Cells
 
-To annotate $10,000+$ to $50,000+$ extracted cell crops efficiently without annotator fatigue:
+Because our automated extraction pipelines (`extract_cells.py` / `boundary_sharpening_pipeline.py`) can generate **millions of unlabeled cell crops** across whole microscopy datasets, **Self-Supervised Learning (SSL)** is the core foundational engine of our project architecture.
 
-1. **Unsupervised Pre-Clustering (DINOv2 + HDBSCAN)**:
-   - Pass all extracted unlabelled cell crops through a zero-shot DINOv2 Vision Transformer to obtain 768-dimensional feature vectors.
-   - Run **HDBSCAN / k-Means** clustering to group extracted crops into ~100 distinct visual morphometric clusters (e.g., highly ramified resting cells, swollen ameboid activated cells, isolated process fragments).
-2. **Bulk Cluster Labeling**:
-   - Annotators inspect clusters in bulk. Clear clusters (e.g., 500 homogenous resting cells) can be verified and annotated in a single click, speeding up labeling by **$10\times$**.
-3. **Active Learning & Uncertainty Sampling**:
-   - For ambiguous border clusters, compute model prediction entropy $H(x) = -\sum p_i \log p_i$.
-   - Route only the top 5% highest-uncertainty samples to human expert annotators (Dr. Lilach Gavish's team), maximizing annotation impact per unit effort.
+### 1. DINOv2 Self-Distillation (Oquab et al., 2023)
+- Uses a Student and Teacher Vision Transformer (ViT) network with multi-crop self-distillation.
+- Forces the model to recognize that a zoomed-in process branch crop, a rotated cell mask, and an entire soma crop belong to the same underlying cellular structural entity.
+- Learns invariant feature representations resistant to IHC staining variations, background tissue noise, and optical blur—without needing a single human label!
+
+### 2. Masked Autoencoder (MAE) Patch Reconstruction (He et al., 2022)
+- Randomly masks out **75% to 85%** of visual patches in each single-cell crop.
+- Trains a ViT decoder to reconstruct missing cellular processes from the remaining 15% visible patches.
+- Forces the neural network to learn deep spatial semantics and continuity of microglial process arborization zero-shot.
+
+### 3. Massive Efficiency Advantage
+- Pre-training on **1,000,000+ unlabeled cells** builds a domain-specific microglial foundation backbone.
+- Downstream fine-tuning requires only **10,000 to 50,000 labeled cells** to achieve state-of-the-art classification accuracy, reducing manual annotation effort by **90%**.
 
 ---
 
-## Phase 2: Dual-Crop Preprocessing & Feature Embedding Space
+## Phase 2: High-Throughput Semi-Supervised Active Annotation Strategy
 
-Store and preprocess every extracted cell as a dual-representation pair:
-- **Representation A (Raw RGB Crop)**: Preserves original staining intensity, texture, and intracellular details.
-- **Representation B (Sharpened Contour / Binary Mask)**: Pure morphological silhouette removing background tissue noise and neighboring cell artifacts.
+Using the pre-trained SSL feature embedding space:
 
-### Data Augmentation Pipeline
-To ensure model robustness across microscopy staining variations:
-- Stain intensity jittering & contrast adjustment.
-- Random $360^\circ$ rotation and horizontal/vertical flips.
-- Elastic morphological warping to simulate histological sectioning distortions.
+1. **Unsupervised Pre-Clustering (DINOv2 + HDBSCAN)**:
+   - Pass all extracted cell crops through the SSL DINOv2 backbone to obtain 768-dimensional feature vectors.
+   - Run **HDBSCAN / k-Means** clustering to group extracted crops into ~100 distinct visual morphometric clusters.
+2. **Bulk Cluster Labeling**:
+   - Annotators inspect clusters in bulk. Homogeneous clusters (e.g., 500 clear resting cells) can be verified and annotated in a single click, speeding up labeling by **$10\times$**.
+3. **Active Learning & Uncertainty Sampling**:
+   - For ambiguous border clusters, compute model prediction entropy $H(x) = -\sum p_i \log p_i$.
+   - Route only the top 5% highest-uncertainty samples to human expert annotators (Dr. Lilach Gavish's team), maximizing annotation impact per unit effort.
 
 ---
 
@@ -99,7 +105,7 @@ To solve the critical bottleneck where distal processes are severed or dystrophi
 2. **Graph Edge Definition ($E$)**:
    - Spatial proximity edges established via Delaunay triangulation and Euclidean distance thresholds ($d_{ij} \le 35\,\mu\text{m}$).
 3. **Node Features ($h_i$)**:
-   - Morphometric descriptors (soma area, perimeter, circularity, fractal dimension $D_f$) combined with DINOv2 embedding vectors.
+   - Morphometric descriptors (soma area, perimeter, circularity, fractal dimension $D_f$) combined with SSL DINOv2 embedding vectors.
 4. **Message Passing (GATv2 / MPNN)**:
    - Graph Attention Networks aggregate process fragment topology into soma representations, resolving *Resting* vs. *Resolution* ambiguity and grouping shattered *Dystrophic* fragments into unified cellular entities.
 
@@ -121,7 +127,8 @@ To solve the critical bottleneck where distal processes are severed or dystrophi
                     │                                     │
                     ▼                                     ▼
          ┌─────────────────────┐               ┌─────────────────────┐
-         │ DINOv2 ViT Backbone │               │ GATv2 Graph Encoder │
+         │ Pre-trained DINOv2  │               │ GATv2 Graph Encoder │
+         │    SSL Backbone     │               │                     │
          └──────────┬──────────┘               └──────────┬──────────┘
                     │                                     │
                     └──────────────────┬──────────────────┘
@@ -140,18 +147,11 @@ To solve the critical bottleneck where distal processes are severed or dystrophi
 └──────────────┘                └──────────────┘                └──────────────┘
 ```
 
-### Combined Loss Function
-$$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{Focal (Classification)}} + \lambda_1 \mathcal{L}_{\text{MSE (Activation Index)}} + \lambda_2 \mathcal{L}_{\text{Contrastive (InfoNCE)}}$$
-
-- **Focal Loss**: Handles class imbalance (e.g., higher frequency of surveilling cells vs. rare dystrophic cells).
-- **Contrastive Loss**: Enforces clear embedding separation between morphologically adjacent states (*Resting* vs. *Resolution*).
-
 ---
 
 ## Phase 5: Whole-Slide Inference & Per-State Counting Engine
 
-### Whole-Slide Processing Pipeline
-1. **Tile Decomposition**: Slice ultra-high-resolution microscopy section into overlapping $1024\times1024$ tiles.
+1. **Tile Decomposition**: Slice ultra-high-resolution tissue images into overlapping $1024\times1024$ tiles.
 2. **Parallel Extraction**: Run `extract_cells.py` / `boundary_sharpening_pipeline.py` to segment cell contours across tiles.
 3. **Cross-Tile Seam Deduplication**: Apply Non-Maximum Suppression (NMS) with $IoU > 0.5$ on overlapping tile margins.
 4. **Automated Counting Output**:
@@ -176,8 +176,8 @@ $$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{Focal (Classification)}} + \la
 
 | Step | Action Item | Tool / Technology | Timeline |
 | :---: | :--- | :--- | :---: |
-| **1** | Run zero-shot DINOv2 embedding extraction on existing 4,874 dataset crops. | PyTorch, DINOv2 | **Week 1** |
-| **2** | Perform HDBSCAN clustering to organize crops into 50–100 visual clusters. | scikit-learn, HDBSCAN | **Week 1** |
-| **3** | Setup cluster-assisted bulk labeling interface in CVAT or custom web tool. | CVAT / Streamlit | **Week 2** |
-| **4** | Annotate initial 10,000 cell sample using active cluster labeling. | Human Annotators | **Weeks 3–4** |
-| **5** | Train baseline DINOv2 + GNN multi-class classifier on 10k dataset. | PyTorch Geometric | **Weeks 5–6** |
+| **1** | Run SSL pre-training (DINOv2 / MAE) on 100,000+ extracted unlabeled cell crops. | PyTorch, DINOv2 / MAE | **Weeks 1–2** |
+| **2** | Perform HDBSCAN clustering on SSL embedding space to organize crops into visual clusters. | scikit-learn, HDBSCAN | **Week 2** |
+| **3** | Setup cluster-assisted bulk labeling interface in CVAT or custom web tool. | CVAT / Streamlit | **Week 3** |
+| **4** | Annotate initial 10,000–20,000 cell sample using active cluster labeling. | Human Annotators | **Weeks 4–5** |
+| **5** | Fine-tune SSL Backbone + GNN multi-class classifier on labeled dataset. | PyTorch Geometric | **Weeks 6–7** |
