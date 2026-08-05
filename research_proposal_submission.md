@@ -112,19 +112,20 @@ This project builds directly upon the baseline M.Sc. thesis project completed at
 The baseline study established a soma-centric annotated dataset of 4,874 microglial cells extracted from phase-contrast and fluorescence microscopy images of PBM-treated rat brain slices. The dataset categorized cells into four discrete morphological states: Resting, Surveilling, Activated, and Resolution.
 
 ![Figure 2: 4 Microglial Morphological Activation Cell States with Side-by-Side Sharpened Silhouette Crops](/Users/dpeleg/local/MicroGlia/scratch/figures/figure3_cell_states_panel.jpg)
-*Figure 2: Dual-crop representation panel across the 4 microglial morphological activation states: (A) Resting (Ramified), (B) Surveilling, (C) Activated (Ameboid), and (D) Resolution. Each state shows the raw RGB cell crop alongside its isolated, boundary-sharpened single-cell silhouette crop (`subcell_XXX_sharpened_extracted.jpg`), strictly selected to match the 5 morphological criteria defined by Presaizen (2026).*
+*Figure 2: Dual-crop representation panel across the 4 microglial morphological activation states defined by Presaizen (2026): (A) Quiescent (Resting) [small, circular soma with no branches], (B) Patrolling (Surveilling) [circular/spindle soma with 2 branching podia], (C) Reactive (Activated) [irregular soma with 2-3 podia], and (D) Senescent (Resolution) [ameboid/flat medium-large soma with no podia]. Each state shows the raw RGB crop alongside its isolated binary silhouette crop (`subcell_XXX_sharpened_extracted.jpg`).*
 
-### 5.1 Presaizen (2026) Morphological Activation State Criteria Table
+### 5.1 Morphological Activation State Criteria (Table 1 - Presaizen, 2026)
 
-To ensure consistent manual annotation and visual evaluation, Presaizen (2026) defined explicit morphological criteria across soma size, soma shape, process/podia branching, boundary characteristics, and phase-contrast brightness:
+To establish a rigorous, objective ground truth annotation rubric, Presaizen (2026) defined explicit morphological criteria across six key cellular parameters: Class Name, Soma Shape, Soma Size, Podia (Branching Processes), Boundary Definition, and Phase-Contrast Brightness (Table 1):
 
-| Morphological Feature | Resting | Surveilling | Activated | Resolution |
-| :--- | :--- | :--- | :--- | :--- |
-| **Soma Size** | Small, compact | Elongated | Significantly enlarged | Large, swollen |
-| **Soma Shape** | Circular / Ovoid | Irregular / Elongated | Ameboid / Round | Irregular / Multi-lobular |
-| **Processes / Podia** | Long, fine, ramified | Extensive branching | Short, thick / Retracted | Short, beaded, resolving |
-| **Boundary** | Sharp, smooth | Irregular, dynamic | Diffuse / Smooth | Irregular / Fragmented |
-| **Brightness** | Dark / High Contrast | Moderate | Bright / Phase-dense | Moderate to Dark |
+| Class (State) | Shape | Size | Podia | Boundary | Brightness |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Quiescent (Resting)** | Circular | Small | None | Clear | Dark |
+| **Patrolling (Surveilling)** | Circular / spindle | Small-medium | 2 | Clear | Dark |
+| **Reactive / Pro-inflammatory (Activated)** | Irregular | Small-medium | 2–3 | Intermittent | Intermediate |
+| **Senescent / Terminal (Resolution)** | Ameboid / flat | Medium-large | None | Clear | Bright |
+
+*Table 1: Morphological characterization criteria for microglial activation states adapted directly from Presaizen (2026, Figure 1 summary table).*
 
 The baseline architecture utilized a YOLOv11 object detector for 4-class classification. While achieving respectable baseline metrics (mAP@0.5 ≈ 0.76, macro-F1 ≈ 0.69), the study revealed key performance challenges:
 
@@ -227,10 +228,10 @@ The framework will be evaluated across three complementary quantitative tiers:
 8. Kim, J., Pavlidis, P., & Vogel Ciernia, A. (2024). Development of a High-Throughput Pipeline to Characterize Microglia Morphological States at a Single-Cell Resolution. *eNeuro*, 11(6), ENEURO.0010-24.2024.
 9. Kirillov, A., Mintun, E., Ravi, N., et al. (2023). Segment Anything. *Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)*, 4015-4026.
 10. Leyh, J., Schafer, M. K., et al. (2021). Microglial morphodynamics in traumatic brain injury and recovery. *Glia*, 69(8), 1950-1965.
-11. Maas, A. I., Menon, D. K., Adelson, P. D., et al. (2017). Traumatic brain injury: integrated approaches to improve prevention, clinical care, and research. *The Lancet Neurology*, 16(12), 987-1048.
+11. Maas, A. I., Menon, D. K., Adelson, P. D., et al. (2017). Traumatic brain injury: integrated approaches to improve prevention, clinical care, and research. The Lancet Neurology, 16(12), 987-1048.
 12. Macenko, M., Niethammer, M., Marron, J. S., et al. (2009). A method for normalizing histology slides for quantitative analysis. *IEEE ISBI*, 1107-1110.
 13. Morera, H., Dave, P., Kolinko, Y., et al. (2024). A novel deep learning-based method for automatic stereology of microglia cells from low magnification images. *Neurotoxicology and Teratology*, 102, 107336.
-14. Oquab, M., Darcet, T., Moutakanni, T., et al. (2023). DINOv2: Learning Robust Visual Features Without Supervision. *arXiv preprint arXiv:2304.07193*.
+14. Oquab, M., Darcet. T., Moutakanni, T., et al. (2023). DINOv2: Learning Robust Visual Features Without Supervision. *arXiv preprint arXiv:2304.07193*.
 15. Pachitariu, M., & Stringer, C. (2024). Cellpose 3.0: accurate segmentation of biological images using foundation models. *Nature Methods*, 21(4), 701-710.
 16. Presaizen, T. (2026). *AI-Powered Microglial Classification for Activation Scoring*. Master's Thesis, School of Data Science: Intelligent Systems, Afeka Academic College of Engineering & Hebrew University of Jerusalem.
 17. Salter, M. W., & Beggs, S. (2014). Sublime microglia: expanding roles for the guardians of the CNS. *Cell*, 158(1), 15-24.
