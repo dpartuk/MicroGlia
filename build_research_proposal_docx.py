@@ -322,7 +322,54 @@ def create_research_proposal():
     
     # EMBED FIGURE 3: 4 Microglial Cell Activation States Panel
     fig3_file = '/Users/dpeleg/local/MicroGlia/scratch/figures/figure3_cell_states_panel.jpg'
-    add_image_figure(fig3_file, "Figure 2: Dual-crop representation panel across the 4 microglial morphological activation states: (A) Resting (Ramified), (B) Surveilling, (C) Activated (Ameboid), and (D) Resolution. Each state shows the raw RGB cell crop alongside its isolated, boundary-sharpened single-cell silhouette crop (subcell_XXX_sharpened_extracted.jpg).", width_inches=6.0)
+    add_image_figure(fig3_file, "Figure 2: Dual-crop representation panel across the 4 microglial morphological activation states: (A) Resting (Ramified), (B) Surveilling, (C) Activated (Ameboid), and (D) Resolution. Each state shows the raw RGB cell crop alongside its isolated, boundary-sharpened single-cell silhouette crop (subcell_XXX_sharpened_extracted.jpg), strictly selected to match the 5 morphological criteria defined by Presaizen (2026).", width_inches=6.0)
+
+    # ADD PRESAIZEN MORPHOLOGICAL CRITERIA TABLE
+    add_h2("5.1 Presaizen (2026) Morphological Activation State Criteria Table")
+    add_body("To ensure consistent manual annotation and visual evaluation, Presaizen (2026) defined explicit morphological criteria across soma size, soma shape, process/podia branching, boundary characteristics, and phase-contrast brightness:")
+
+    table_pres = doc.add_table(rows=1, cols=5)
+    table_pres.alignment = WD_TABLE_ALIGNMENT.CENTER
+    
+    t_hdr = table_pres.rows[0].cells
+    hdr_titles = ["Feature", "Resting", "Surveilling", "Activated", "Resolution"]
+    for i_col, title in enumerate(hdr_titles):
+        p_c = t_hdr[i_col].paragraphs[0]
+        p_c.paragraph_format.space_before = Pt(2)
+        p_c.paragraph_format.space_after = Pt(2)
+        r_c = p_c.add_run(title)
+        r_c.font.name = 'Arial'
+        r_c.font.bold = True
+        r_c.font.size = Pt(9.0)
+        r_c.font.color.rgb = RGBColor(255, 255, 255)
+        set_cell_background(t_hdr[i_col], "003366")
+        set_cell_margins(t_hdr[i_col], top=30, bottom=30, left=60, right=60)
+
+    pres_criteria_rows = [
+        ("Soma Size", "Small, compact", "Elongated", "Significantly enlarged", "Large, swollen"),
+        ("Soma Shape", "Circular / Ovoid", "Irregular / Elongated", "Ameboid / Round", "Irregular / Multi-lobular"),
+        ("Processes / Podia", "Long, fine, ramified", "Extensive branching", "Short, thick / Retracted", "Short, beaded, resolving"),
+        ("Boundary", "Sharp, smooth", "Irregular, dynamic", "Diffuse / Smooth", "Irregular / Fragmented"),
+        ("Brightness", "Dark / High Contrast", "Moderate", "Bright / Phase-dense", "Moderate to Dark")
+    ]
+
+    for f_name, r_val, s_val, a_val, res_val in pres_criteria_rows:
+        r_cells = table_pres.add_row().cells
+        row_vals = [f_name, r_val, s_val, a_val, res_val]
+        for c_i, val in enumerate(row_vals):
+            p_val = r_cells[c_i].paragraphs[0]
+            p_val.paragraph_format.line_spacing = 1.0
+            p_val.paragraph_format.space_before = Pt(1)
+            p_val.paragraph_format.space_after = Pt(1)
+            r_v = p_val.add_run(val)
+            r_v.font.name = 'Arial'
+            r_v.font.size = Pt(9.0)
+            if c_i == 0:
+                r_v.font.bold = True
+                r_v.font.color.rgb = NAVY
+            else:
+                r_v.font.color.rgb = DARK
+            set_cell_margins(r_cells[c_i], top=20, bottom=20, left=60, right=60)
 
     add_body("The baseline architecture utilized a YOLOv11 object detector for 4-class classification. While achieving respectable baseline metrics (mAP@0.5 ≈ 0.76, macro-F1 ≈ 0.69), the study revealed key performance challenges:")
     add_bullet(" Bounding boxes crop out distal process branches, restricting analysis to the central soma.", "1. Soma-Centric Restriction:")
@@ -447,7 +494,7 @@ def create_research_proposal():
     out_downloads = '/Users/dpeleg/Downloads/research-proposal-final.docx'
     doc.save(out_local)
     doc.save(out_downloads)
-    print(f"Updated Objective Sequence DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
+    print(f"Updated Presaizen Table & Figure DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
 
 if __name__ == "__main__":
     create_research_proposal()
