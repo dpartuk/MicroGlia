@@ -15,24 +15,27 @@
 
 | Abbreviation | Definition |
 | :--- | :--- |
-| **ABSA** | Aspect-Based Sentiment Analysis |
 | **AI** | Artificial Intelligence |
-| **ANN** | Artificial Neural Network |
 | **AUC-ROC** | Area Under the Receiver Operating Characteristic Curve |
 | **CNS** | Central Nervous System |
 | **CNN** | Convolutional Neural Network |
 | **CV** | Computer Vision |
+| **CVAT** | Computer Vision Annotation Tool |
 | **DINOv2** | Self-Supervised Vision Transformer for Representation Learning |
+| **GATv2** | Graph Attention Network (Version 2) |
 | **GNN** | Graph Neural Network |
 | **IHC** | Immunohistochemistry |
 | **IoU** | Intersection over Union |
 | **MAE** | Masked Autoencoder |
 | **mAP** | Mean Average Precision |
 | **ML** | Machine Learning |
+| **MPNN** | Message Passing Neural Network |
 | **PBM** | Photobiomodulation Therapy |
+| **ROS** | Reactive Oxygen Species |
 | **SAM** | Segment Anything Model |
 | **SOTA** | State-of-the-Art |
 | **TBI** | Traumatic Brain Injury |
+| **U-Net** | Convolutional Network Architecture for Biological Segmentation |
 | **ViT** | Vision Transformer |
 | **YOLO** | You Only Look Once (Object Detection Framework) |
 
@@ -197,6 +200,6 @@ The framework will be evaluated across three complementary quantitative tiers:
 9. Kirillov, A., Mintun, E., Ravi, N., et al. (2023). Segment Anything. *Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)*, 4015-4026.
 10. Oquab, M., Darcet, T., Moutakanni, T., et al. (2023). DINOv2: Learning Robust Visual Features Without Supervision. *arXiv preprint arXiv:2304.07193*.
 11. Veličković, P., Cucurull, G., Casanova, A., et al. (2018). Graph Attention Networks. *International Conference on Learning Representations (ICLR)*.
-12. Brody, S., Alon, U., & Yahav, E. (2022). How Attentive are Graph Attention Networks? *International Conference on Learning Representations (ICLR)*.
+12. Brody, S., Alon, U., & Yahav-Handzel, S. (2022). How Attentive are Graph Attention Networks? *International Conference on Learning Representations (ICLR)*.
 13. Gavish, L., & Houreld, N. N. (2019). Therapeutic Efficacy of Photobiomodulation (PBM) in Wound Healing and Neuroinflammation. *Photomedicine and Laser Surgery*, 37(3), 150-162.
 14. Leyh, J., Schafer, M. K., et al. (2021). Microglial morphodynamics in traumatic brain injury and recovery. *Glia*, 69(8), 1950-1965.

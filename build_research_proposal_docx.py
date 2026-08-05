@@ -124,9 +124,7 @@ def create_research_proposal():
         p.paragraph_format.space_after = Pt(4)
         return p
 
-    # -------------------------------------------------------------
     # TITLE PAGE / METADATA
-    # -------------------------------------------------------------
     p_inst = doc.add_paragraph()
     p_inst.alignment = WD_ALIGN_PARAGRAPH.CENTER
     r_inst = p_inst.add_run("SCHOOL OF DATA SCIENCE: INTELLIGENT SYSTEMS\nAFEKA ACADEMIC COLLEGE OF ENGINEERING / HEBREW UNIVERSITY OF JERUSALEM")
@@ -169,9 +167,7 @@ def create_research_proposal():
 
     doc.add_page_break()
 
-    # -------------------------------------------------------------
     # TABLE OF ABBREVIATIONS
-    # -------------------------------------------------------------
     add_h1("Table of Abbreviations")
     abbrev_table = doc.add_table(rows=1, cols=2)
     abbrev_table.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -185,24 +181,27 @@ def create_research_proposal():
     hdr_cells[1].paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
 
     abbrevs = [
-        ("ABSA", "Aspect-Based Sentiment Analysis"),
         ("AI", "Artificial Intelligence"),
-        ("ANN", "Artificial Neural Network"),
         ("AUC-ROC", "Area Under the Receiver Operating Characteristic Curve"),
         ("CNS", "Central Nervous System"),
         ("CNN", "Convolutional Neural Network"),
         ("CV", "Computer Vision"),
+        ("CVAT", "Computer Vision Annotation Tool"),
         ("DINOv2", "Self-Supervised Vision Transformer for Representation Learning"),
+        ("GATv2", "Graph Attention Network (Version 2)"),
         ("GNN", "Graph Neural Network"),
         ("IHC", "Immunohistochemistry"),
         ("IoU", "Intersection over Union"),
         ("MAE", "Masked Autoencoder"),
         ("mAP", "Mean Average Precision"),
         ("ML", "Machine Learning"),
+        ("MPNN", "Message Passing Neural Network"),
         ("PBM", "Photobiomodulation Therapy"),
+        ("ROS", "Reactive Oxygen Species"),
         ("SAM", "Segment Anything Model"),
         ("SOTA", "State-of-the-Art"),
         ("TBI", "Traumatic Brain Injury"),
+        ("U-Net", "Convolutional Network Architecture for Biological Segmentation"),
         ("ViT", "Vision Transformer"),
         ("YOLO", "You Only Look Once (Object Detection Framework)")
     ]
@@ -214,18 +213,14 @@ def create_research_proposal():
         set_cell_margins(row_cells[0], top=60, bottom=60, left=100, right=100)
         set_cell_margins(row_cells[1], top=60, bottom=60, left=100, right=100)
 
-    # -------------------------------------------------------------
     # 1. MOTIVATION
-    # -------------------------------------------------------------
     add_h1("1. Motivation")
     add_body("Traumatic Brain Injury (TBI) affects approximately 69 million individuals worldwide every year. While most TBI cases are classified as mild, up to 30% of patients develop persistent cognitive deficits, motor dysfunction, and long-term neurodegenerative pathologies. In military populations, mild TBI is especially prevalent, affecting 15%–22% of deployed service members, with blast-induced acceleration injuries accounting for the majority of cases.")
     add_body("Microglia, the resident immune sentinels of the Central Nervous System (CNS), are central to the neuroinflammatory cascade triggered by TBI. Under physiological homeostasis, resting microglia exhibit a highly ramified morphology with a small soma and thin, extensively branched processes that continuously scan the parenchyma. Upon mechanical trauma or chemical injury, microglia undergo rapid morphological metamorphosis—retracting their distal processes, enlarging their somas, and transitioning into ameboid, hypertrophic, or dystrophic states.")
     add_body("Photobiomodulation (PBM), a non-invasive therapeutic intervention utilizing red to near-infrared light (600–1000 nm), has emerged as a promising neuroprotective strategy for TBI. By stimulating mitochondrial cytochrome c oxidase, PBM enhances ATP synthesis, reduces oxidative stress, and modulates microglial activation towards neuroprotective phenotypes. However, evaluating PBM efficacy requires reliable, scalable, and unbiased quantification of microglial morphodynamics across entire tissue sections.")
     add_body("Existing automated quantification methods predominantly rely on soma-centric bounding boxes (e.g., YOLO-based object detectors). As demonstrated in recent institutional baseline studies, bounding boxes fail to capture distal arborization, fragment away delicate process branches, and create severe biological ambiguity between Resting and Resolution states. Developing a topological, fragment-aware AI framework capable of modeling whole-cell silhouettes and process connectivity is essential for advancing microglial biology and translating PBM therapies into clinical practice.")
 
-    # -------------------------------------------------------------
     # 2. RESEARCH QUESTION AND HYPOTHESIS
-    # -------------------------------------------------------------
     add_h1("2. Research Question and Hypothesis")
     add_h2("2.1 Research Questions")
     add_bullet(" Can foundation-model segmentation (e.g., Cellpose 3.0 / SAM-Microscopy) combined with Graph Neural Networks (GNNs) overcome soma-centric bounding box limitations to accurately capture fragmented microglial arborization?", "RQ1:")
@@ -235,9 +230,7 @@ def create_research_proposal():
     add_h2("2.2 Research Hypothesis")
     add_body("It is hypothesized that transitioning from soma-centric bounding boxes to foundation-model-based polygonal segmentation (Cellpose 3.0 / SAM-Microscopy) and modeling the spatial neighborhood of fragmented distal processes using Graph Neural Networks (GNNs) will resolve the confusion between Resting and Resolution states by capturing the full cellular silhouette. Furthermore, by representing process fragments as nodes in a spatial proximity graph, the framework will significantly increase the recall of dystrophic/shattered cells lacking a unified soma anchor, yielding a sensitive, continuous activation index for PBM evaluation.")
 
-    # -------------------------------------------------------------
     # 3. RESEARCH OBJECTIVES
-    # -------------------------------------------------------------
     add_h1("3. Research Objectives")
     add_bullet(" Re-annotate the institutional benchmark dataset of 4,874 cells using fine polygonal masks to capture distal processes, beaded arborization, and shattered process fragments excluded by YOLO bounding boxes.", "Objective 1 (Dataset Re-annotation):")
     add_bullet(" Deploy and fine-tune foundation segmentation models (Cellpose 3.0 and SAM-Microscopy) to extract full microglial silhouettes without relying on a central soma anchor.", "Objective 2 (Foundation Segmentation):")
@@ -245,9 +238,7 @@ def create_research_proposal():
     add_bullet(" Implement a contrastive self-supervised representation learning space (DINOv2 / Masked Autoencoders) fine-tuned on segmented microglial masks to separate morphologically subtle activation states.", "Objective 4 (Self-Supervised Feature Space):")
     add_bullet(" Formulate a continuous Multi-Parametric Activation Index (0–1 scale) and validate its sensitivity against experimental PBM-treated and LPS-challenged rodent TBI brain slices.", "Objective 5 (Clinical & Experimental Validation):")
 
-    # -------------------------------------------------------------
     # 4. LITERATURE REVIEW
-    # -------------------------------------------------------------
     add_h1("4. Literature Review")
     add_h2("4.1 Microglia and Neuroinflammation")
     add_body("Microglia constitute 10%–15% of all glial cells in the CNS and serve as the frontline defense against traumatic, ischemic, and neurodegenerative insults. Under homeostatic conditions, surveilling microglia display an arborized morphology with delicate processes extending tens of micrometers from a small soma. Following TBI, inflammatory signaling cascades induce rapid structural metamorphosis: retracting processes, swelling somas, and transitioning into activated ameboid macrophages capable of phagocytosis.")
@@ -270,9 +261,7 @@ def create_research_proposal():
     add_h2("4.7 Literature Gap & Summary")
     add_body("Despite rapid progress in deep learning for digital pathology, existing microglial pipelines remain strictly soma-centric and bounding-box constrained. No current framework integrates foundation-model segmentation with spatial GNN topological modeling to resolve Resting vs. Resolution state confusion or reconstruct fragmented dystrophic cells. This project addresses this critical gap.")
 
-    # -------------------------------------------------------------
     # 5. PRELIMINARY WORK & STUDY RATIONALE
-    # -------------------------------------------------------------
     add_h1("5. Preliminary Work and Study Rationale")
     add_body("This project builds directly upon the baseline M.Sc. thesis project completed at our institution by Tali Presaizen (Jan 2026), supervised by Dr. Sharon Yalov-Handzel and Dr. Lilach Gavish.")
     add_body("The baseline study established a soma-centric annotated dataset of 4,874 microglial cells extracted from phase-contrast and fluorescence microscopy images of PBM-treated rat brain slices. The dataset categorized cells into four discrete morphological states: Resting, Surveilling, Activated, and Resolution.")
@@ -283,9 +272,7 @@ def create_research_proposal():
     
     add_body("These baseline findings provide the direct rationale for our proposed Topological AI Pipeline.")
 
-    # -------------------------------------------------------------
     # 6. PROPOSED METHODOLOGY
-    # -------------------------------------------------------------
     add_h1("6. Proposed Methodology")
     add_h2("6.1 Pipeline Architecture")
     add_body("The proposed framework consists of five integrated computational stages:")
@@ -299,9 +286,7 @@ def create_research_proposal():
     add_body("Segmented cell somas ($V_{\\text{soma}}$) and distal process fragments ($V_{\\text{fragment}}$) are represented as graph nodes $V = V_{\\text{soma}} \\cup V_{\\text{fragment}}$. Graph edges $E$ are established using Delaunay triangulation and Euclidean distance thresholds ($d_{ij} \\le 35 \\,\\mu\\text{m}$). Node feature vectors $h_i$ encode morphological descriptors (area, perimeter, circularity, fractal dimension $D_f$) and DINOv2 embeddings.")
     add_body("A Graph Attention Network (GATv2) with multi-head attention performs message passing to aggregate process neighborhood topology into node-level and graph-level representations $h_G = \\text{Readout}(\\{h_i\\})$.")
 
-    # -------------------------------------------------------------
     # 7. WORK PLAN & STAGES (MATCHING LINOY'S FORMAT)
-    # -------------------------------------------------------------
     add_h1("7. Work Plan and Project Stages")
     add_body("The proposed research will be executed across six structured project stages over a total estimated duration of 26 weeks (~6.5 months), adhering to the departmental proposal guidelines:")
 
@@ -338,27 +323,21 @@ def create_research_proposal():
         add_bullet(goal, "Goal: ")
         add_bullet(duration, "Estimated Duration: ")
 
-    # -------------------------------------------------------------
     # 8. EVALUATION PLAN
-    # -------------------------------------------------------------
     add_h1("8. Evaluation Plan and Benchmarking")
     add_body("The framework will be evaluated across three complementary quantitative tiers:")
     add_bullet(" Dice Coefficient, Intersection over Union (IoU), and Boundary-F1 score compared against manual polygonal ground truth.", "1. Segmentation Metrics:")
     add_bullet(" Macro-F1 score, Per-class Precision/Recall, and Confusion Matrix analysis across Resting, Surveilling, Activated, and Resolution states (benchmarked against YOLOv11 baseline F1=0.69).", "2. Morphological Classification:")
-    add_bullet(" Pearson correlation ($r$) and Spearman rank ($\\\\rho$) between the computed Activation Index (0–1) and biological PBM light dosage ($J/cm^2$) across TBI tissue slices.", "3. Biological & Clinical Sensitivity:")
+    add_bullet(" Pearson correlation ($r$) and Spearman rank ($\\rho$) between the computed Activation Index (0–1) and biological PBM light dosage ($J/cm^2$) across TBI tissue slices.", "3. Biological & Clinical Sensitivity:")
 
-    # -------------------------------------------------------------
     # 9. EXPECTED CONTRIBUTION
-    # -------------------------------------------------------------
     add_h1("9. Expected Scientific and Technological Contribution")
     add_bullet(" First AI framework combining foundation-model segmentation with Graph Neural Networks for microglial morphometry.", "1. Novel Methodological Paradigm:")
     add_bullet(" Solves the critical bottleneck of detecting shattered dystrophic microglia lacking a central soma anchor.", "2. Dystrophic Microglia Reconstruction:")
     add_bullet(" Provides an open-source, fragment-first polygonal dataset of 4,874 microglial cells for the research community.", "3. Open-Source Benchmark Dataset:")
     add_bullet(" Delivers a scalable, reproducible tool for quantifying Photobiomodulation (PBM) neuroprotective efficacy in TBI.", "4. Translational Neurobiology Impact:")
 
-    # -------------------------------------------------------------
     # 10. REFERENCES
-    # -------------------------------------------------------------
     add_h1("10. References")
     references_list = [
         "Anwer, D. M., Gubinelli, F., Kurt, Y. A., et al. (2023). A comparison of machine learning approaches for the quantification of microglial cells in the brain of mice, rats and non-human primates. PLOS ONE, 18(4), e0284480.",
@@ -392,7 +371,7 @@ def create_research_proposal():
     out_downloads = '/Users/dpeleg/Downloads/research-proposal-final.docx'
     doc.save(out_local)
     doc.save(out_downloads)
-    print(f"Saved DOCX Proposal to:\n  - {out_local}\n  - {out_downloads}")
+    print(f"Updated DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
 
 if __name__ == "__main__":
     create_research_proposal()
