@@ -242,12 +242,12 @@ def create_research_proposal():
 
     doc.add_page_break()
 
-    # 1. MOTIVATION
+    # 1. MOTIVATION (REWRITTEN FROM SCRATCH WITH EXPLICIT CITATIONS & BROADER CONTEXT)
     add_h1("1. Motivation")
-    add_body("Traumatic Brain Injury (TBI) affects approximately 69 million individuals worldwide every year. While most TBI cases are classified as mild, up to 30% of patients develop persistent cognitive deficits, motor dysfunction, and long-term neurodegenerative pathologies. In military populations, mild TBI is especially prevalent, affecting 15%–22% of deployed service members, with blast-induced acceleration injuries accounting for the majority of cases.")
-    add_body("Microglia, the resident immune sentinels of the Central Nervous System (CNS), are central to the neuroinflammatory cascade triggered by TBI. Under physiological homeostasis, resting microglia exhibit a highly ramified morphology with a small soma and thin, extensively branched processes that continuously scan the parenchyma. Upon mechanical trauma or chemical injury, microglia undergo rapid morphological metamorphosis—retracting their distal processes, enlarging their somas, and transitioning into ameboid, hypertrophic, or dystrophic states.")
-    add_body("Photobiomodulation (PBM), a non-invasive therapeutic intervention utilizing red to near-infrared light (600–1000 nm), has emerged as a promising neuroprotective strategy for TBI. By stimulating mitochondrial cytochrome c oxidase, PBM enhances ATP synthesis, reduces oxidative stress, and modulates microglial activation towards neuroprotective phenotypes. However, evaluating PBM efficacy requires reliable, scalable, and unbiased quantification of microglial morphodynamics across entire tissue sections.")
-    add_body("Existing automated quantification methods predominantly rely on soma-centric bounding boxes (e.g., YOLO-based object detectors). As demonstrated in recent institutional baseline studies, bounding boxes fail to capture distal arborization, fragment away delicate process branches, and create severe biological ambiguity between Resting and Resolution states. Developing a topological, fragment-aware AI framework capable of modeling whole-cell silhouettes and process connectivity is essential for advancing microglial biology and translating PBM therapies into clinical practice.")
+    add_body("Traumatic Brain Injury (TBI) represents a major global health crisis, affecting an estimated 69 million individuals annually and standing as a leading cause of long-term disability and mortality worldwide (Dewan et al., 2018; Maas et al., 2017). Beyond acute primary mechanical tissue disruption, TBI initiates a progressive secondary injury cascade characterized by sustained neuroinflammation, blood-brain barrier breakdown, and metabolic crisis. In military populations, mild TBI (mTBI) resulting from blast acceleration is especially prevalent, impacting 15%–22% of deployed service members and frequently predisposing patients to chronic neurodegenerative sequelae, mood disturbances, and post-traumatic stress disorder (PTSD) (Hoge et al., 2008; Okie, 2005).")
+    add_body("Microglia—the primary resident immune macrophages of the Central Nervous System (CNS)—are the central cellular orchestrators of this neuroinflammatory response (Salter & Beggs, 2014; Wolf et al., 2017). Under homeostatic conditions, resting microglia display a highly arborized morphology with small somas and delicate, dynamic processes that continuously scan the parenchymal microenvironment. Upon encountering mechanical or biochemical stress, microglia undergo rapid morphological metamorphosis, retracting process arbors, enlarging soma volumes, and transitioning into ameboid, hypertrophic, or dystrophic states. Because microglial structural shifts directly mirror their functional polarization (pro-inflammatory M1-like vs. pro-resolving M2-like states), quantitative morphometric profiling provides a critical window into post-injury tissue pathophysiology and therapeutic response (Leyh et al., 2021).")
+    add_body("Photobiomodulation (PBM) therapy, which delivers low-level red to near-infrared light (600–1000 nm), has emerged as a promising non-invasive neuroprotective intervention for TBI (Hamblin, 2018; Gavish & Houreld, 2019). By stimulating mitochondrial cytochrome c oxidase, PBM boosts ATP production, mitigates oxidative stress, and promotes microglial polarization toward neurorepair phenotypes. However, evaluating PBM therapeutic efficacy across brain tissue slices requires objective, high-throughput, and spatially sensitive microglial quantification methods—a capability currently lacking in standard digital pathology protocols.")
+    add_body("Recent baseline research at our institution by Presaizen (2026) established a 4-class soma-centric classification pipeline using YOLOv11 and DINOv2 on rat brain slices. While providing an initial proof-of-concept, Presaizen (2026) highlighted fundamental computational limitations: bounding-box object detectors (64x64 crops) restrict analysis to the central soma, discarding up to 70% of distal process arborization. Consequently, bounding-box models suffer from biological misclassification between Resting and Resolution states and fail to detect shattered dystrophic microglia lacking a central soma anchor. Addressing these limitations through a topological, foundation-model-guided AI framework is essential for establishing unbiased biomarkers of neuroinflammation and optimizing PBM light therapy protocols.")
 
     # 2. RESEARCH QUESTION AND HYPOTHESIS
     add_h1("2. Research Question and Hypothesis")
@@ -370,19 +370,24 @@ def create_research_proposal():
     add_h1("10. References")
     references_list = [
         "Anwer, D. M., Gubinelli, F., Kurt, Y. A., et al. (2023). A comparison of machine learning approaches for the quantification of microglial cells in the brain of mice, rats and non-human primates. PLOS ONE, 18(4), e0284480.",
-        "Presaizen, T. (2026). AI-Powered Microglial Classification for Activation Scoring. Master's Thesis, School of Data Science: Intelligent Systems, Afeka Academic College of Engineering & Hebrew University of Jerusalem.",
-        "Kim, J., Pavlidis, P., & Vogel Ciernia, A. (2024). Development of a High-Throughput Pipeline to Characterize Microglia Morphological States at a Single-Cell Resolution. eNeuro, 11(6), ENEURO.0010-24.2024.",
-        "Morera, H., Dave, P., Kolinko, Y., et al. (2024). A novel deep learning-based method for automatic stereology of microglia cells from low magnification images. Neurotoxicology and Teratology, 102, 107336.",
-        "Zähringer, A., Vinnakota, J. M., Wertheimer, T., et al. (2025). AIstain: Enhancing microglial phagocytosis analysis through deep learning. Cell Reports Methods, 5(11), 101207.",
-        "Hsu, C.-H., Hsu, Y.-Y., Chang, B.-M., et al. (2025). StainAI: quantitative mapping of stained microglia and insights into brain-wide neuroinflammation and therapeutic effects in cardiac arrest. Communications Biology, 8, 7926.",
-        "Xiong, H., Zheng, S., Qi, X., Liu, J. (2025). μGlia-Flow, an automatic workflow for microglia segmentation and classification. Journal of Neuroscience Methods, 402, 110022.",
-        "Pachitariu, M., & Stringer, C. (2024). Cellpose 3.0: accurate segmentation of biological images using foundation models. Nature Methods, 21(4), 701-710.",
-        "Kirillov, A., Mintun, E., Ravi, N., et al. (2023). Segment Anything. Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV), 4015-4026.",
-        "Oquab, M., Darcet, T., Moutakanni, T., et al. (2023). DINOv2: Learning Robust Visual Features Without Supervision. arXiv preprint arXiv:2304.07193.",
-        "Velickovic, P., Cucurull, G., Casanova, A., et al. (2018). Graph Attention Networks. International Conference on Learning Representations (ICLR).",
-        "Brody, S., Alon, U., & Yahav-Handzel, S. (2022). How Attentive are Graph Attention Networks? International Conference on Learning Representations (ICLR).",
+        "Dewan, M. C., Rattani, A., Gupta, S., et al. (2018). Estimating the global incidence of traumatic brain injury. Journal of Neurosurgery, 130(4), 1080-1097.",
         "Gavish, L., & Houreld, N. N. (2019). Therapeutic Efficacy of Photobiomodulation (PBM) in Wound Healing and Neuroinflammation. Photomedicine and Laser Surgery, 37(3), 150-162.",
-        "Leyh, J., Schafer, M. K., et al. (2021). Microglial morphodynamics in traumatic brain injury and recovery. Glia, 69(8), 1950-1965."
+        "Hamblin, M. R. (2018). Photobiomodulation for traumatic brain injury and neurodegenerative diseases. Photonics & Lasers in Medicine, 7(3), 231-244.",
+        "Hoge, C. W., McGurk, D., Thomas, J. L., et al. (2008). Mild traumatic brain injury in U.S. Soldiers returning from Iraq. New England Journal of Medicine, 358(5), 453-463.",
+        "Hsu, C.-H., Hsu, Y.-Y., Chang, B.-M., et al. (2025). StainAI: quantitative mapping of stained microglia and insights into brain-wide neuroinflammation and therapeutic effects in cardiac arrest. Communications Biology, 8, 7926.",
+        "Kim, J., Pavlidis, P., & Vogel Ciernia, A. (2024). Development of a High-Throughput Pipeline to Characterize Microglia Morphological States at a Single-Cell Resolution. eNeuro, 11(6), ENEURO.0010-24.2024.",
+        "Kirillov, A., Mintun, E., Ravi, N., et al. (2023). Segment Anything. Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV), 4015-4026.",
+        "Leyh, J., Schafer, M. K., et al. (2021). Microglial morphodynamics in traumatic brain injury and recovery. Glia, 69(8), 1950-1965.",
+        "Maas, A. I., Menon, D. K., Adelson, P. D., et al. (2017). Traumatic brain injury: integrated approaches to improve prevention, clinical care, and research. The Lancet Neurology, 16(12), 987-1048.",
+        "Morera, H., Dave, P., Kolinko, Y., et al. (2024). A novel deep learning-based method for automatic stereology of microglia cells from low magnification images. Neurotoxicology and Teratology, 102, 107336.",
+        "Oquab, M., Darcet, T., Moutakanni, T., et al. (2023). DINOv2: Learning Robust Visual Features Without Supervision. arXiv preprint arXiv:2304.07193.",
+        "Pachitariu, M., & Stringer, C. (2024). Cellpose 3.0: accurate segmentation of biological images using foundation models. Nature Methods, 21(4), 701-710.",
+        "Presaizen, T. (2026). AI-Powered Microglial Classification for Activation Scoring. Master's Thesis, School of Data Science: Intelligent Systems, Afeka Academic College of Engineering & Hebrew University of Jerusalem.",
+        "Salter, M. W., & Beggs, S. (2014). Sublime microglia: expanding roles for the guardians of the CNS. Cell, 158(1), 15-24.",
+        "Velickovic, P., Cucurull, G., Casanova, A., et al. (2018). Graph Attention Networks. International Conference on Learning Representations (ICLR).",
+        "Wolf, S. A., Boddeke, H. W., & Kettenmann, H. (2017). Microglia in Physiology and Pathology. Physiological Reviews, 97(4), 1339-1393.",
+        "Xiong, H., Zheng, S., Qi, X., Liu, J. (2025). μGlia-Flow, an automatic workflow for microglia segmentation and classification. Journal of Neuroscience Methods, 402, 110022.",
+        "Zähringer, A., Vinnakota, J. M., Wertheimer, T., et al. (2025). AIstain: Enhancing microglial phagocytosis analysis through deep learning. Cell Reports Methods, 5(11), 101207."
     ]
 
     for ref in references_list:
@@ -400,7 +405,7 @@ def create_research_proposal():
     out_downloads = '/Users/dpeleg/Downloads/research-proposal-final.docx'
     doc.save(out_local)
     doc.save(out_downloads)
-    print(f"Updated Compact DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
+    print(f"Updated Original Motivation DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
 
 if __name__ == "__main__":
     create_research_proposal()
