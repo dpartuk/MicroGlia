@@ -9,77 +9,93 @@ Because all dataset images are generated in-house under a standardized laborator
 1. Minor IHC staining intensity and color hue shifts.
 2. Cell density variations (hundreds to thousands of cells per tissue section).
 
-This controlled protocol simplifies the architecture, speeds up Self-Supervised Learning (SSL) convergence, and eliminates the need for out-of-domain generalization.
+**Correct Pipeline Sequencing**: Stain Normalization (Step 1.3) is performed **BEFORE** SSL pre-training (Step 1.4) and Clustering (Step 1.5) so that DINOv2 and HDBSCAN learn pure biological cell morphology without being misled by color artifacts.
 
 ```
-[ Step 1: Automated Cell Extraction & Dual Crop Storage ]
-                           │
-                           ▼
-[ Step 2: In-Domain SSL Pre-Training (DINOv2 + MAE) ]
-                           │
-                           ▼
-[ Step 3: Unsupervised Feature Clustering (HDBSCAN / UMAP) ]
-                           │
-                           ▼
-[ Step 4: Active Bulk Labeling & Uncertainty Sampling (10k-50k Cells) ]
-                           │
-                           ▼
-[ Step 5: Lab-Calibrated Color & Density Augmentation Engine ]
-                           │
-                           ▼
-[ Step 6: Deterministic Physical Spatial Graph Construction ]
-                           │
-                           ▼
-[ Step 7: Multi-Task Joint Model Training (SSL ViT + GATv2) ]
-                           │
-                           ▼
-[ Step 8: Whole-Slide High-Throughput Inference & Seam NMS ]
-                           │
-                           ▼
-[ Step 9: Continuous Activation Index Computation (0.00–1.00) ]
-                           │
-                           ▼
-[ Step 10: Pharmacological Drug & PBM Analytics Platform ]
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│ THEME 1: DATA PREPARATION, CLEANING, AGGREGATION, SSL, STORAGE & LABELING                   │
+│   1.1 Automated Whole-Slide Cell Extraction & Cleaning (CLAHE + Edge Fusion + Deduplication)│
+│   1.2 Dual-Crop Storage & Dataset Aggregation (Raw RGB + Binary Silhouette Mask)            │
+│   1.3 Lab Stain Normalization Engine (Macenko Normalization BEFORE SSL Pre-Training)        │
+│   1.4 In-Domain Self-Supervised Pre-Training (SSL via DINOv2 + MAE on Normalized Crops)     │
+│   1.5 Unsupervised Feature Space Pre-Clustering (UMAP + HDBSCAN into ~100 Clusters)         │
+│   1.6 Active Bulk Labeling & Uncertainty Sampling (10k–50k Labeled Cells via CVAT)         │
+└──────────────────────────────────────────────┬──────────────────────────────────────────────┘
+                                               │
+                                               ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│ THEME 2: TRAINING, CLASSIFICATION, COUNTING & EVALUATION                                    │
+│   2.1 Deterministic Spatial Graph Construction (G = (V, E) connecting Somas & Fragments)     │
+│   2.2 Multi-Task Joint Model Training (Pre-trained SSL ViT + GATv2 Graph Encoder)           │
+│   2.3 Whole-Slide High-Throughput Inference & Seam NMS Deduplication                        │
+│   2.4 Per-State Cell Counting & Continuous Activation Index Computation (0.00–1.00)        │
+│   2.5 Pharmacological Drug & PBM Response Analytics Platform (Dr. Lilach Gavish Screening)  │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Step 1: Automated Whole-Slide Single-Cell Extraction & Dual-Crop Storage
+## Step 1.1: Automated Whole-Slide Single-Cell Extraction & Cleaning
 
 ### Technical Details
 - Execute our automated extraction pipelines (`extract_cells.py` / `boundary_sharpening_pipeline.py`) across lab microscopy tissue slice images.
 - Implements Multi-Tile Local Adaptive CLAHE ($8\times8$ grid) + Scharr/Canny edge gradient fusion + contained sub-cell IoU deduplication tuned for cyan contours.
-- For every detected cell contour, save a dual-representation pair:
-  - **Crop A (Raw RGB)**: Original color image crop ($128\times128$).
-  - **Crop B (Sharpened Mask)**: Binary silhouette mask isolating cell morphology.
 
 ### Motivation
 Standardizes single-cell input shapes, removes extraneous parenchymal background, and isolates individual cellular targets for scalable batch processing.
 
 ### Expected Output
-A standardized repository of **1,000,000+ extracted single-cell crops** saved in paired RGB and binary mask formats.
+Standardized single-cell bounding regions across all lab microscopy slices.
 
 ---
 
-## Step 2: In-Domain Self-Supervised Pre-Training (SSL via DINOv2 + MAE)
+## Step 1.2: Dual-Crop Storage & Dataset Aggregation
 
 ### Technical Details
-- Pre-train a Vision Transformer (ViT-Base/16) backbone on all 1,000,000+ unlabeled lab single-cell crops using two complementary SSL objectives:
+- Save every extracted cell as a dual-representation pair:
+  - **Crop A (Raw RGB)**: Original color image crop ($128\times128$).
+  - **Crop B (Sharpened Mask)**: Binary silhouette mask isolating cell morphology.
+
+### Motivation
+Preserves both intracellular staining texture and pure morphological silhouettes.
+
+### Expected Output
+A paired dataset repository of **1,000,000+ extracted single-cell crops**.
+
+---
+
+## Step 1.3: Lab Stain Normalization Engine (Macenko Method)
+
+### Technical Details
+- Apply Macenko / Vahadane optical density matrix factorization to all 1M+ extracted cell crops, mapping them to a single gold-standard lab reference slide (`VID2724_A3_4_00d07h00m.tif`).
+
+### Motivation & Pipeline Order Rationale
+**Executed BEFORE SSL pre-training**! Standardizing stain color and contrast across all 1M+ crops first guarantees that DINOv2 self-distillation, MAE patch reconstruction, and HDBSCAN clustering operate on pure cell morphology rather than memorizing stain color variations.
+
+### Expected Output
+A standardized, stain-normalized cell crop repository ready for self-supervised learning.
+
+---
+
+## Step 1.4: In-Domain Self-Supervised Pre-Training (SSL via DINOv2 + MAE)
+
+### Technical Details
+- Pre-train a Vision Transformer (ViT-Base/16) backbone on all 1,000,000+ **stain-normalized** cell crops using two complementary SSL objectives:
   1. **DINOv2 Self-Distillation**: Student and teacher networks trained with multi-crop cross-entropy loss.
   2. **Masked Autoencoder (MAE)**: Randomly mask out **75% to 85%** of image patches and train a decoder to reconstruct missing cellular processes.
 
 ### Motivation & Lab Calibration Advantage
-Because all images come from your lab's microscope setup, the SSL backbone converges **$2\times$ faster** and learns razor-sharp, domain-specific representations of microglial membrane textures, process branching, and soma geometries without learning irrelevant out-of-domain noise.
+Because crops are already stain-normalized and come from your lab's microscope setup, the SSL backbone converges **$2\times$ faster** and learns razor-sharp, domain-specific representations of microglial membrane textures, process branching, and soma geometries.
 
 ### Expected Output
-A specialized **Lab-Calibrated Microglial Feature Encoder** capable of converting any cell image crop into a rich, low-dimensional 768-vector embedding.
+A specialized **Lab-Calibrated Microglial Feature Encoder** generating rich 768-vector embeddings.
 
 ---
 
-## Step 3: Unsupervised Feature Space Pre-Clustering (HDBSCAN / UMAP)
+## Step 1.5: Unsupervised Feature Space Pre-Clustering (HDBSCAN / UMAP)
 
 ### Technical Details
-- Pass all 1,000,000+ unlabeled cell crops through the pre-trained SSL encoder to extract 768-dimensional feature vectors.
+- Pass all 1,000,000+ stain-normalized cell crops through the pre-trained SSL encoder to extract 768-dimensional feature vectors.
 - Reduce embedding dimensions using UMAP and run density-based clustering (**HDBSCAN / k-Means**) to partition cells into ~100 distinct visual morphometric clusters.
 
 ### Motivation
@@ -90,7 +106,7 @@ An organized **Morphometric Cluster Map** where >80% of cell crops belong to den
 
 ---
 
-## Step 4: Active Bulk Labeling & Uncertainty Sampling (10k–50k Cells)
+## Step 1.6: Active Bulk Labeling & Uncertainty Sampling (10k–50k Cells)
 
 ### Technical Details
 - Deploy a web-based annotation interface (CVAT / Streamlit) equipped with dual active labeling modes:
@@ -105,29 +121,13 @@ A gold-standard **Annotated Benchmark Dataset** of 10,000 to 50,000 microglial c
 
 ---
 
-## Step 5: Lab-Calibrated Color Normalization & Density Augmentation Engine
-
-### Technical Details
-- Build a lightweight, lab-tuned augmentation pipeline applied during model training:
-  - **Macenko / Vahadane Stain Normalization**: Standardizes mild IHC hue variations across lab staining runs.
-  - **Color Jitter & Brightness Normalization**: Accommodates minor illumination differences.
-  - **Density Sampling & Random $360^\circ$ Rotation**: Simulates sparse vs. dense cell regions.
-
-### Motivation
-Because lab optics and physical resolution are fixed, we do not waste model capacity on aggressive synthetic spatial distortions. Focus is kept strictly on color/staining normalization and cell density invariance.
-
-### Expected Output
-A calibrated augmentation engine ensuring robust performance across all future lab staining batches.
-
----
-
-## Step 6: Deterministic Physical Spatial Graph Construction ($G = (V, E)$)
+## Step 2.1: Deterministic Physical Spatial Graph Construction ($G = (V, E)$)
 
 ### Technical Details
 - For each whole-slide tissue section:
   - Define primary soma bodies as Soma Nodes ($V_{\text{soma}}$).
   - Define distal process branches and beaded fragments as Fragment Nodes ($V_{\text{fragment}}$).
-  - Connect nodes using Delaunay triangulation and exact physical spatial distance thresholds ($d_{ij} \le 35\,\mu\text{m}$) mapped to lab physical pixel dimensions.
+  - Connect nodes using Delaunay triangulation and exact physical spatial distance thresholds ($d_{ij} \le 35\,\mu\text{m}$) mapped to lab physical pixel dimensions ($\mu\text{m/pixel}$).
 
 ### Motivation
 Because physical spatial scale ($\mu\text{m/pixel}$) is fixed across your lab's microscope, graph distance thresholds are exact and deterministic—capturing process neighborhood topology perfectly without scale ambiguity.
@@ -137,7 +137,7 @@ Whole-image **Spatial Cellular Graphs** ($G=(V,E)$) representing single cells an
 
 ---
 
-## Step 7: Multi-Task Joint Model Training (SSL ViT Backbone + GATv2 Graph Encoder)
+## Step 2.2: Multi-Task Joint Model Training (SSL ViT Backbone + GATv2 Graph Encoder)
 
 ### Technical Details
 - Train a multi-task neural network architecture combining:
@@ -154,7 +154,7 @@ A trained, high-accuracy **Microglial Multi-Task Classification Model** achievin
 
 ---
 
-## Step 8: Whole-Slide High-Throughput Inference & Seam Deduplication
+## Step 2.3: Whole-Slide High-Throughput Inference & Seam Deduplication
 
 ### Technical Details
 - Deploy model for whole-slide inference:
@@ -170,7 +170,7 @@ Automated, reliable **Per-Slice Cell Activation Counts** (`Resting: 420, Surveil
 
 ---
 
-## Step 9: Image-Level Continuous Activation Index Computation
+## Step 2.4: Image-Level Continuous Activation Index Computation
 
 ### Technical Details
 - Calculate a continuous Activation Index ($0.00$ to $1.00$) for every analyzed tissue image:
@@ -184,7 +184,7 @@ A standardized **Continuous Microglial Activation Score (0.00 to 1.00)** for eve
 
 ---
 
-## Step 10: Pharmacological Drug & PBM Response Analytics Platform
+## Step 2.5: Pharmacological Drug & PBM Response Analytics Platform
 
 ### Technical Details
 - Compute statistical sensitivity metrics (Pearson $r$, Spearman $\rho$, ANOVA) correlating activation scores against candidate drug dosage levels and Photobiomodulation (PBM) light fluence ($J/\text{cm}^2$).
@@ -195,20 +195,3 @@ Directly fulfills the core translational objective of **Dr. Lilach Gavish, PhD, 
 
 ### Expected Output
 Automated **Pharmacological Drug Screening Reports & Interactive QC Web Galleries** enabling researchers to evaluate drug efficacy effortlessly.
-
----
-
-## Summary Matrix: All 10 Steps
-
-| Step # | Action Item | Core Motivation | Expected Output / Deliverable |
-| :---: | :--- | :--- | :--- |
-| **1** | **Automated Cell Extraction** | Isolate single cells from lab microscopy images. | **1,000,000+ Dual Cell Crops** (RGB + Mask) |
-| **2** | **In-Domain SSL Pre-Training** | Learn lab-specific features zero-shot ($2\times$ faster). | **Lab-Calibrated DINOv2/MAE Encoder** |
-| **3** | **Unsupervised Feature Clustering** | Group similar cells together for fast annotation. | **Morphometric Cluster Map** (~100 clusters) |
-| **4** | **Active Bulk Labeling** | Label 10k–50k cells $10\times$ faster with expert QC. | **Gold-Standard Labeled Dataset** (10k–50k cells) |
-| **5** | **Lab Stain Normalization** | Handle mild staining/color & cell density variations. | **Stain- & Density-Calibrated Engine** |
-| **6** | **Deterministic Graph Construction** | Connect somas & fragments using fixed physical scale. | **Exact Spatial Cellular Graphs** ($G=(V,E)$) |
-| **7** | **Multi-Task Joint Training** | Fuse visual features + spatial graph topology. | **Trained Multi-Task Classification Model** (F1>0.94) |
-| **8** | **Whole-Slide High-Throughput Inference** | Process gigapixel slides in parallel without duplicates. | **Automated Per-Slice State Cell Counts** |
-| **9** | **Continuous Activation Index** | Provide a single quantitative bio-score per slide. | **Continuous Activation Index (0.00–1.00)** |
-| **10** | **Pharmacological Drug Analytics** | Evaluate drug & PBM therapeutic efficacy. | **Pharmacological Reports & QC Web Galleries** |
