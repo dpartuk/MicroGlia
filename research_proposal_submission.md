@@ -49,6 +49,9 @@ Traumatic Brain Injury (TBI) and secondary neurodegenerative disorders represent
 
 Microglia—the primary resident immune sentinels of the Central Nervous System (CNS)—are the central cellular orchestrators of this neuroinflammatory cascade (Salter & Beggs, 2014; Wolf et al., 2017). Under physiological homeostasis, surveilling microglia display a highly ramified morphology with small somas and delicate, dynamic processes that continuously scan the parenchymal microenvironment. Upon encountering mechanical or biochemical stress, microglia undergo rapid morphological metamorphosis, retracting process arbors, enlarging soma volumes, and transitioning into ameboid, hypertrophic, or dystrophic states. Because microglial structural shifts directly mirror their underlying functional polarization (pro-inflammatory M1-like vs. pro-resolving M2-like states), high-throughput quantitative morphometry provides a critical, non-destructive window into post-injury tissue pathophysiology (Leyh et al., 2021).
 
+![Figure 1: Original Whole-Slide Brain Tissue Microscopy Image](/Users/dpeleg/local/MicroGlia/scratch/figures/figure1_original_tissue.jpg)
+*Figure 1: Example of an original lab microscopy brain tissue slice image (`JPG_VID2724_B1_3_00d07h00m.jpg`) containing hundreds of microglial cells marked with cyan contours.*
+
 In translational pharmacology and neuro-therapeutics, evaluating the impact of candidate therapeutic drugs and physical modalities—such as Photobiomodulation (PBM) light therapy—on microglial activation and morphological recovery is paramount (Gavish & Houreld, 2019; Hamblin, 2018). In ongoing collaborative research directed by **Dr. Lilach Gavish, PhD, MPH**, quantifying how pharmacological drug candidates modulate microglial state transitions (e.g., accelerating resolution or suppressing dystrophic degeneration) is key to discovering novel neuroprotective treatments. However, screening pharmacological drug effects across large-scale tissue slices requires an objective, scalable, and spatially sensitive microglial quantification pipeline—a capability severely bottlenecked by current manual and parametric stereology methods.
 
 Recent baseline research at our institution by Presaizen (2026) established a 4-class soma-centric classification pipeline using YOLOv11 and DINOv2 on rat brain slices. While providing an initial proof-of-concept, Presaizen (2026) highlighted fundamental computational limitations: bounding-box object detectors ($64\times64$ crops) restrict analysis to the central soma, discarding up to 70% of distal process arborization. Consequently, bounding-box models suffer from biological misclassification between Resting and Resolution states and fail to detect shattered dystrophic microglia lacking a central soma anchor. Addressing these limitations through a topological, foundation-model-guided AI framework is essential for establishing unbiased morphometric biomarkers to evaluate drug and PBM therapeutic efficacy in translational neurobiology.
@@ -108,6 +111,9 @@ This project builds directly upon the baseline M.Sc. thesis project completed at
 
 The baseline study established a soma-centric annotated dataset of 4,874 microglial cells extracted from phase-contrast and fluorescence microscopy images of PBM-treated rat brain slices. The dataset categorized cells into four discrete morphological states: Resting, Surveilling, Activated, and Resolution.
 
+![Figure 2: 4 Microglial Morphological Activation Cell States](/Users/dpeleg/local/MicroGlia/scratch/figures/figure3_cell_states_panel.jpg)
+*Figure 2: Representative single-cell crop examples across the 4 microglial morphological activation states: (A) Resting (Ramified), (B) Surveilling, (C) Activated (Ameboid), and (D) Resolution.*
+
 The baseline architecture utilized a YOLOv11 object detector paired with a DINOv2 Vision Transformer feature extractor for 4-class classification. While achieving respectable baseline metrics (mAP@0.5 ≈ 0.76, macro-F1 ≈ 0.69), the study revealed critical performance bottlenecks:
 
 1. **Distal Information Loss**: Soma-centric $64\times64$ bounding boxes cropped out distal process branches, discarding 70% of morphological information.
@@ -124,6 +130,10 @@ The project architecture is structured into two core operational themes, ensurin
 
 ### THEME 1: Data Preparation, Cleaning, Aggregation, SSL, Storage & Labeling
 * **Stage 1.1 (Automated Cell Extraction & Cleaning)**: Execute `extract_cells.py` / `boundary_sharpening_pipeline.py` using Multi-Tile CLAHE ($8\times8$ grid), Scharr/Canny edge fusion, and contained sub-cell IoU deduplication.
+
+![Figure 3: Whole-Slide Cell Contour Extraction Grid Map](/Users/dpeleg/local/MicroGlia/scratch/figures/figure2_extraction_map.jpg)
+*Figure 3: Example of a whole-slide cell contour extraction grid map (`VID2724_A3_4_00d07h00m`), illustrating automated single-cell extraction and side-by-side pipeline evaluation.*
+
 * **Stage 1.2 (Hybrid Database & Image Container Storage)**: Deploy **MongoDB** as a document store indexing JSON metadata, spatial BBoxes (`[x, y, w, h]`), cluster IDs, and active labels. Store binary cell crops, masks, and DINOv2 embeddings in HDF5 containers sharded directly by original whole-slide Image ID (`IMAGE_ID_cells.h5`).
 * **Stage 1.3 (Lab Stain Normalization Engine)**: Apply Macenko optical density matrix factorization to all 1M+ cell crops BEFORE SSL pre-training to eliminate IHC color shifts.
 * **Stage 1.4 (In-Domain Self-Supervised Pre-Training)**: Pre-train ViT-Base on 1M+ stain-normalized crops using DINOv2 self-distillation and MAE patch reconstruction.

@@ -112,6 +112,24 @@ def create_research_proposal():
         p.paragraph_format.space_after = Pt(4)
         return p
 
+    def add_image_figure(image_path, caption_text, width_inches=6.0):
+        if os.path.exists(image_path):
+            p_img = doc.add_paragraph()
+            p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p_img.paragraph_format.space_before = Pt(8)
+            p_img.paragraph_format.space_after = Pt(4)
+            run = p_img.add_run()
+            run.add_picture(image_path, width=Inches(width_inches))
+            
+            p_cap = doc.add_paragraph()
+            p_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p_cap.paragraph_format.space_after = Pt(12)
+            r_cap = p_cap.add_run(caption_text)
+            r_cap.font.name = 'Arial'
+            r_cap.font.size = Pt(9.5)
+            r_cap.font.italic = True
+            r_cap.font.color.rgb = SLATE
+
     # TITLE PAGE / METADATA
     p_inst = doc.add_paragraph()
     p_inst.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -248,6 +266,11 @@ def create_research_proposal():
     add_h1("1. Motivation")
     add_body("Traumatic Brain Injury (TBI) and secondary neurodegenerative disorders represent a major global health crisis, affecting an estimated 69 million individuals annually and standing as a leading cause of long-term neurocognitive impairment (Dewan et al., 2018; Maas et al., 2017). Following primary neurotrauma, a progressive secondary injury cascade ensues, driven by chronic neuroinflammation, oxidative stress, and blood-brain barrier breakdown. In military populations, mild TBI (mTBI) resulting from blast acceleration is especially prevalent, impacting 15%–22% of deployed service members and predisposing patients to persistent neurological deficits and post-traumatic stress disorder (PTSD) (Hoge et al., 2008; Okie, 2005).")
     add_body("Microglia—the primary resident immune sentinels of the Central Nervous System (CNS)—are the central cellular orchestrators of this neuroinflammatory cascade (Salter & Beggs, 2014; Wolf et al., 2017). Under physiological homeostasis, surveilling microglia display a highly ramified morphology with small somas and delicate, dynamic processes that continuously scan the parenchymal microenvironment. Upon encountering mechanical or biochemical stress, microglia undergo rapid morphological metamorphosis, retracting process arbors, enlarging soma volumes, and transitioning into ameboid, hypertrophic, or dystrophic states. Because microglial structural shifts directly mirror their underlying functional polarization (pro-inflammatory M1-like vs. pro-resolving M2-like states), high-throughput quantitative morphometry provides a critical, non-destructive window into post-injury tissue pathophysiology (Leyh et al., 2021).")
+    
+    # EMBED FIGURE 1: Original Tissue Image
+    fig1_file = '/Users/dpeleg/local/MicroGlia/scratch/figures/figure1_original_tissue.jpg'
+    add_image_figure(fig1_file, "Figure 1: Example of an original lab microscopy brain tissue slice image (e.g. JPG_VID2724_B1_3_00d07h00m.jpg) containing hundreds of microglial cells marked with cyan contours.", width_inches=5.8)
+
     add_body("In translational pharmacology and neuro-therapeutics, evaluating the impact of candidate therapeutic drugs and physical modalities—such as Photobiomodulation (PBM) light therapy—on microglial activation and morphological recovery is paramount (Gavish & Houreld, 2019; Hamblin, 2018). In ongoing collaborative research directed by Dr. Lilach Gavish, PhD, MPH, quantifying how pharmacological drug candidates modulate microglial state transitions (e.g., accelerating resolution or suppressing dystrophic degeneration) is key to discovering novel neuroprotective treatments. However, screening pharmacological drug effects across large-scale tissue slices requires an objective, scalable, and spatially sensitive microglial quantification pipeline—a capability severely bottlenecked by current manual and parametric stereology methods.")
     add_body("Recent baseline research at our institution by Presaizen (2026) established a 4-class soma-centric classification pipeline using YOLOv11 and DINOv2 on rat brain slices. While providing an initial proof-of-concept, Presaizen (2026) highlighted fundamental computational limitations: bounding-box object detectors (64x64 crops) restrict analysis to the central soma, discarding up to 70% of distal process arborization. Consequently, bounding-box models suffer from biological misclassification between Resting and Resolution states and fail to detect shattered dystrophic microglia lacking a central soma anchor. Addressing these limitations through a topological, foundation-model-guided AI framework is essential for establishing unbiased morphometric biomarkers to evaluate drug and PBM therapeutic efficacy in translational neurobiology.")
 
@@ -296,6 +319,11 @@ def create_research_proposal():
     add_h1("5. Preliminary Work and Study Rationale")
     add_body("This project builds directly upon the baseline M.Sc. thesis project completed at our institution by Tali Presaizen (Jan 2026), supervised by Dr. Sharon Yalov-Handzel and Dr. Lilach Gavish.")
     add_body("The baseline study established a soma-centric annotated dataset of 4,874 microglial cells extracted from phase-contrast and fluorescence microscopy images of PBM-treated rat brain slices. The dataset categorized cells into four discrete morphological states: Resting, Surveilling, Activated, and Resolution.")
+    
+    # EMBED FIGURE 3: 4 Microglial Cell Activation States Panel
+    fig3_file = '/Users/dpeleg/local/MicroGlia/scratch/figures/figure3_cell_states_panel.jpg'
+    add_image_figure(fig3_file, "Figure 2: Representative single-cell crop examples across the 4 microglial morphological activation states: (A) Resting (Ramified), (B) Surveilling, (C) Activated (Ameboid), and (D) Resolution.", width_inches=6.0)
+
     add_body("The baseline architecture utilized a YOLOv11 object detector paired with a DINOv2 Vision Transformer feature extractor for 4-class classification. While achieving respectable baseline metrics (mAP@0.5 ≈ 0.76, macro-F1 ≈ 0.69), the study revealed critical performance bottlenecks:")
     add_bullet(" Soma-centric $64\\times64$ bounding boxes cropped out distal process branches, discarding 70% of morphological information.", "1. Distal Information Loss:")
     add_bullet(" The confusion matrix revealed severe misclassification between Resting and Resolution states (F1 < 0.62), as both states share similar soma sizes but differ vastly in distal process topology.", "2. Resting vs. Resolution Ambiguity:")
@@ -309,7 +337,12 @@ def create_research_proposal():
 
     add_h2("THEME 1: Data Preparation, Cleaning, Aggregation, SSL, Storage & Labeling")
     add_bullet(" Automated Whole-Slide Cell Extraction & Cleaning (CLAHE + Scharr/Canny edge fusion + contained sub-cell IoU deduplication).", "Stage 1.1:")
-    add_bullet(" Hybrid Storage Architecture (MongoDB JSON document store for metadata, spatial BBoxes, and active labels + HDF5 binary containers sharded by original Image ID).", "Stage 1.2:")
+    
+    # EMBED FIGURE 2: Whole-Slide Cell Contour Extraction Map
+    fig2_file = '/Users/dpeleg/local/MicroGlia/scratch/figures/figure2_extraction_map.jpg'
+    add_image_figure(fig2_file, "Figure 3: Example of a whole-slide cell contour extraction grid map (VID2724_A3_4_00d07h00m), illustrating automated single-cell extraction and side-by-side pipeline evaluation.", width_inches=5.8)
+
+    add_bullet(" Hybrid Storage Architecture (MongoDB JSON document store for metadata, spatial BBoxes [x, y, w, h], cluster IDs, and active labels + HDF5 binary containers sharded by original Image ID).", "Stage 1.2:")
     add_bullet(" Lab Stain Normalization Engine (Macenko optical density matrix factorization BEFORE SSL pre-training to eliminate IHC color shifts).", "Stage 1.3:")
     add_bullet(" In-Domain Self-Supervised Pre-Training (DINOv2 self-distillation + MAE patch reconstruction on 1M+ stain-normalized crops).", "Stage 1.4:")
     add_bullet(" Unsupervised Feature Space Pre-Clustering (UMAP + HDBSCAN partitioning embeddings into ~100 morphometric clusters).", "Stage 1.5:")
@@ -328,7 +361,7 @@ def create_research_proposal():
 
     stages_data = [
         ("Stage 1 – Theme 1: Dataset Extraction, MongoDB Setup & Stain Normalization",
-         "Run automated cell extraction (extract_cells.py). Set up MongoDB document store for metadata, spatial BBoxes, and active labels. Perform Macenko stain normalization on all 1,000,000+ cell crops sharded by Image ID.",
+         "Run automated cell extraction (extract_cells.py). Set up MongoDB document store for JSON metadata, spatial BBoxes ([x, y, w, h]), and active labels. Perform Macenko stain normalization on all 1,000,000+ cell crops sharded by original Image ID (IMAGE_ID_cells.h5).",
          "Establish a clean, stain-normalized single-cell crop repository indexed in MongoDB.",
          "4 weeks"),
         ("Stage 2 – Theme 1: SSL Pre-Training & Active Cluster Labeling",
@@ -336,7 +369,7 @@ def create_research_proposal():
          "Deploy a domain-specific SSL feature encoder and establish a gold-standard labeled benchmark dataset.",
          "4 weeks"),
         ("Stage 3 – Theme 2: Spatial GNN Graph Construction & Topology",
-         "Construct physical spatial proximity graphs (G=(V,E)) connecting soma nodes and process fragment nodes using BBox coordinates. Implement and train GATv2/MPNN GNN architectures.",
+         "Construct physical spatial proximity graphs (G=(V,E)) connecting soma nodes and process fragment nodes using BBox spatial coordinates ([x, y, w, h]). Implement and train GATv2/MPNN GNN architectures.",
          "Reconstruct shattered dystrophic microglia into single biological entities and capture full arborization topology.",
          "5 weeks"),
         ("Stage 4 – Theme 2: Multi-Task Joint Model Fine-Tuning",
@@ -344,7 +377,7 @@ def create_research_proposal():
          "Achieve state-of-the-art per-class classification accuracy (Macro-F1 > 0.94) and resolve Resting vs. Resolution state ambiguity.",
          "4 weeks"),
         ("Stage 5 – Theme 2: High-Throughput Whole-Slide Inference Engine",
-         "Build the whole-slide inference pipeline with overlapping 1024x1024 tile processing, border Non-Maximum Suppression (NMS), per-state counting, and continuous Activation Index (0.00–1.00) computation.",
+         "Build the whole-slide inference pipeline with overlapping 1024x1024 tile processing, BBox-driven Non-Maximum Suppression (NMS), per-state counting, and continuous Activation Index (0.00–1.00) computation.",
          "Deliver a fast, automated whole-slide cell counting engine.",
          "5 weeks"),
         ("Stage 6 – Theme 2: Pharmacological Validation, Thesis Writing & Defense",
@@ -414,7 +447,7 @@ def create_research_proposal():
     out_downloads = '/Users/dpeleg/Downloads/research-proposal-final.docx'
     doc.save(out_local)
     doc.save(out_downloads)
-    print(f"Updated MongoDB DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
+    print(f"Updated Figure-Embedded DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
 
 if __name__ == "__main__":
     create_research_proposal()
