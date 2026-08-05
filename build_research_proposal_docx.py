@@ -12,8 +12,8 @@ def create_research_proposal():
     # Page Margins
     sections = doc.sections
     for section in sections:
-        section.top_margin = Inches(1.0)
-        section.bottom_margin = Inches(1.0)
+        section.top_margin = Inches(0.8)
+        section.bottom_margin = Inches(0.8)
         section.left_margin = Inches(1.0)
         section.right_margin = Inches(1.0)
 
@@ -28,7 +28,7 @@ def create_research_proposal():
         shd = parse_xml(f'<w:shd {nsdecls("w")} w:fill="{fill_hex}"/>')
         tcPr.append(shd)
 
-    def set_cell_margins(cell, top=100, bottom=100, left=150, right=150):
+    def set_cell_margins(cell, top=30, bottom=30, left=80, right=80):
         tcPr = cell._tc.get_or_add_tcPr()
         tcMar = parse_xml(f'<w:tcMar {nsdecls("w")}><w:top w:w="{top}" w:type="dxa"/><w:bottom w:w="{bottom}" w:type="dxa"/><w:left w:w="{left}" w:type="dxa"/><w:right w:w="{right}" w:type="dxa"/></w:tcMar>')
         tcPr.append(tcMar)
@@ -63,8 +63,8 @@ def create_research_proposal():
         run.font.size = Pt(16)
         run.font.bold = True
         run.font.color.rgb = NAVY
-        p.paragraph_format.space_before = Pt(18)
-        p.paragraph_format.space_after = Pt(8)
+        p.paragraph_format.space_before = Pt(16)
+        p.paragraph_format.space_after = Pt(6)
         p.paragraph_format.keep_with_next = True
         return p
 
@@ -75,19 +75,7 @@ def create_research_proposal():
         run.font.size = Pt(13)
         run.font.bold = True
         run.font.color.rgb = SLATE
-        p.paragraph_format.space_before = Pt(14)
-        p.paragraph_format.space_after = Pt(6)
-        p.paragraph_format.keep_with_next = True
-        return p
-
-    def add_h3(text):
-        p = doc.add_paragraph()
-        run = p.add_run(text)
-        run.font.name = 'Arial'
-        run.font.size = Pt(11.5)
-        run.font.bold = True
-        run.font.color.rgb = DARK
-        p.paragraph_format.space_before = Pt(10)
+        p.paragraph_format.space_before = Pt(12)
         p.paragraph_format.space_after = Pt(4)
         p.paragraph_format.keep_with_next = True
         return p
@@ -162,23 +150,42 @@ def create_research_proposal():
         r_v.font.size = Pt(11)
         r_v.font.color.rgb = DARK
         
-        set_cell_margins(cell_lbl, top=80, bottom=80, left=100, right=100)
-        set_cell_margins(cell_val, top=80, bottom=80, left=100, right=100)
+        set_cell_margins(cell_lbl, top=60, bottom=60, left=100, right=100)
+        set_cell_margins(cell_val, top=60, bottom=60, left=100, right=100)
 
     doc.add_page_break()
 
-    # TABLE OF ABBREVIATIONS
-    add_h1("Table of Abbreviations")
+    # TABLE OF ABBREVIATIONS (COMPACT SINGLE-PAGE FIT)
+    h_abbr = add_h1("Table of Abbreviations")
+    h_abbr.paragraph_format.space_before = Pt(0)
+    h_abbr.paragraph_format.space_after = Pt(4)
+
     abbrev_table = doc.add_table(rows=1, cols=2)
     abbrev_table.alignment = WD_TABLE_ALIGNMENT.CENTER
     
     hdr_cells = abbrev_table.rows[0].cells
-    hdr_cells[0].paragraphs[0].add_run("Abbreviation").font.bold = True
-    hdr_cells[1].paragraphs[0].add_run("Definition").font.bold = True
+    p_h0 = hdr_cells[0].paragraphs[0]
+    p_h1 = hdr_cells[1].paragraphs[0]
+    p_h0.paragraph_format.space_before = Pt(2)
+    p_h0.paragraph_format.space_after = Pt(2)
+    p_h1.paragraph_format.space_before = Pt(2)
+    p_h1.paragraph_format.space_after = Pt(2)
+
+    r_h0 = p_h0.add_run("Abbreviation")
+    r_h1 = p_h1.add_run("Definition")
+    r_h0.font.name = 'Arial'
+    r_h0.font.bold = True
+    r_h0.font.size = Pt(9.5)
+    r_h0.font.color.rgb = RGBColor(255, 255, 255)
+    r_h1.font.name = 'Arial'
+    r_h1.font.bold = True
+    r_h1.font.size = Pt(9.5)
+    r_h1.font.color.rgb = RGBColor(255, 255, 255)
+
     set_cell_background(hdr_cells[0], "003366")
     set_cell_background(hdr_cells[1], "003366")
-    hdr_cells[0].paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
-    hdr_cells[1].paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
+    set_cell_margins(hdr_cells[0], top=30, bottom=30, left=80, right=80)
+    set_cell_margins(hdr_cells[1], top=30, bottom=30, left=80, right=80)
 
     abbrevs = [
         ("AI", "Artificial Intelligence"),
@@ -208,10 +215,32 @@ def create_research_proposal():
 
     for abbr, desc in abbrevs:
         row_cells = abbrev_table.add_row().cells
-        row_cells[0].paragraphs[0].add_run(abbr).font.bold = True
-        row_cells[1].paragraphs[0].add_run(desc)
-        set_cell_margins(row_cells[0], top=60, bottom=60, left=100, right=100)
-        set_cell_margins(row_cells[1], top=60, bottom=60, left=100, right=100)
+        p0 = row_cells[0].paragraphs[0]
+        p1 = row_cells[1].paragraphs[0]
+        
+        p0.paragraph_format.line_spacing = 1.0
+        p0.paragraph_format.space_before = Pt(1)
+        p0.paragraph_format.space_after = Pt(1)
+        
+        p1.paragraph_format.line_spacing = 1.0
+        p1.paragraph_format.space_before = Pt(1)
+        p1.paragraph_format.space_after = Pt(1)
+
+        r0 = p0.add_run(abbr)
+        r0.font.name = 'Arial'
+        r0.font.bold = True
+        r0.font.size = Pt(9.5)
+        r0.font.color.rgb = DARK
+
+        r1 = p1.add_run(desc)
+        r1.font.name = 'Arial'
+        r1.font.size = Pt(9.5)
+        r1.font.color.rgb = DARK
+
+        set_cell_margins(row_cells[0], top=20, bottom=20, left=80, right=80)
+        set_cell_margins(row_cells[1], top=20, bottom=20, left=80, right=80)
+
+    doc.add_page_break()
 
     # 1. MOTIVATION
     add_h1("1. Motivation")
@@ -351,7 +380,7 @@ def create_research_proposal():
         "Kirillov, A., Mintun, E., Ravi, N., et al. (2023). Segment Anything. Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV), 4015-4026.",
         "Oquab, M., Darcet, T., Moutakanni, T., et al. (2023). DINOv2: Learning Robust Visual Features Without Supervision. arXiv preprint arXiv:2304.07193.",
         "Velickovic, P., Cucurull, G., Casanova, A., et al. (2018). Graph Attention Networks. International Conference on Learning Representations (ICLR).",
-        "Brody, S., Alon, U., & Yahav, E. (2022). How Attentive are Graph Attention Networks? International Conference on Learning Representations (ICLR).",
+        "Brody, S., Alon, U., & Yahav-Handzel, S. (2022). How Attentive are Graph Attention Networks? International Conference on Learning Representations (ICLR).",
         "Gavish, L., & Houreld, N. N. (2019). Therapeutic Efficacy of Photobiomodulation (PBM) in Wound Healing and Neuroinflammation. Photomedicine and Laser Surgery, 37(3), 150-162.",
         "Leyh, J., Schafer, M. K., et al. (2021). Microglial morphodynamics in traumatic brain injury and recovery. Glia, 69(8), 1950-1965."
     ]
@@ -371,7 +400,7 @@ def create_research_proposal():
     out_downloads = '/Users/dpeleg/Downloads/research-proposal-final.docx'
     doc.save(out_local)
     doc.save(out_downloads)
-    print(f"Updated DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
+    print(f"Updated Compact DOCX Proposal saved to:\n  - {out_local}\n  - {out_downloads}")
 
 if __name__ == "__main__":
     create_research_proposal()
