@@ -79,6 +79,9 @@ To isolate individual microglial cells and process fragments from gigapixel micr
 * **Output**:
   - Contrast-enhanced grayscale image matrices with sharpened cellular boundaries (`uint8 [H, W]`).
 
+![Sub-step 1.1.1 Input vs. Output: Multi-Tile CLAHE & Edge Gradient Fusion](/Users/dpeleg/local/MicroGlia/Data/step1_1_1_clahe_fusion_io.jpg)
+*Figure 1.1.1: Input vs. Output visual transformation for Sub-step 1.1.1. Left (Input): Raw whole-slide microscopy tissue image with non-uniform illumination. Right (Output): Multi-Tile CLAHE & Scharr/Canny edge gradient fused composite image.*
+
 ---
 
 ### Sub-step 1.1.2: Sub-Cell IoU Deduplication & Cyan Contour Isolation
@@ -90,6 +93,9 @@ To isolate individual microglial cells and process fragments from gigapixel micr
   - Isolated single-cell RGB crops (`uint8 [128, 128, 3]`).
   - Spatial BBox coordinates `[x, y, w, h]` relative to the original whole slide.
 
+![Sub-step 1.1.2 Input vs. Output: Cyan Contour Isolation & Sub-Cell IoU Deduplication](/Users/dpeleg/local/MicroGlia/Data/step1_1_2_cyan_dedup_io.jpg)
+*Figure 1.1.2: Input vs. Output visual transformation for Sub-step 1.1.2. Left (Input): Fused tissue slide overlaid with cyan contour thresholding. Right (Output): Deduplicated 128x128 single-cell RGB crop grid.*
+
 ---
 
 ### Sub-step 1.1.3: Boundary Sharpening & Binary Silhouette Mask Extraction (`boundary_sharpening_pipeline.py`)
@@ -98,6 +104,9 @@ To isolate individual microglial cells and process fragments from gigapixel micr
   - Single-cell RGB crops (`subcell_XXX_original_extracted.jpg`).
 * **Output**:
   - High-fidelity binary silhouette masks (`subcell_XXX_sharpened_extracted.jpg`, `uint8 [128, 128]`).
+
+![Sub-step 1.1.3 Input vs. Output: Boundary Sharpening & Binary Silhouette Mask Extraction](/Users/dpeleg/local/MicroGlia/Data/step1_1_3_boundary_sharpening_io.jpg)
+*Figure 1.1.3: Input vs. Output visual transformation for Sub-step 1.1.3 (`boundary_sharpening_pipeline.py`). Left (Input): Raw single-cell RGB crop (`subcell_224_original_extracted.jpg`). Right (Output): Sharpened binary silhouette mask (`subcell_224_sharpened_extracted.jpg`).*
 
 ---
 
@@ -261,9 +270,9 @@ To build a gold-standard annotated benchmark dataset of 10,000 to 50,000 cells a
 
 | Step # | Sub-step Name | Purpose | Input | Output |
 | :--- | :--- | :--- | :--- | :--- |
-| **1.1.1** | CLAHE & Edge Fusion | Contrast enhancement of slide background | Raw whole-slide image (`.jpg`/`.tiff`) | Contrast-enhanced grayscale slide |
-| **1.1.2** | Cyan Contour Extraction | Isolate cyan-contoured cells & deduplicate | CLAHE slide + HSV color thresholds | Single-cell RGB crops `[128,128,3]` + spatial BBoxes `[x,y,w,h]` |
-| **1.1.3** | Boundary Sharpening | Extract clean binary silhouette masks | Single-cell RGB crops | Binary silhouette masks `[128,128]` |
+| **1.1.1** | CLAHE & Edge Fusion | Contrast enhancement of slide background | Raw whole-slide image (`.jpg`/`.tiff`) | Contrast-enhanced grayscale slide (`step1_1_1_clahe_fusion_io.jpg`) |
+| **1.1.2** | Cyan Contour Extraction | Isolate cyan-contoured cells & deduplicate | CLAHE slide + HSV color thresholds | Single-cell RGB crops `[128,128,3]` (`step1_1_2_cyan_dedup_io.jpg`) |
+| **1.1.3** | Boundary Sharpening | Extract clean binary silhouette masks | Single-cell RGB crops | Binary silhouette masks `[128,128]` (`step1_1_3_boundary_sharpening_io.jpg`) |
 | **1.2.1** | MongoDB Indexing | Fast indexing of cell metadata & active labels | Cell metadata & spatial BBoxes | MongoDB `microglia_metadata` JSON collection |
 | **1.2.2** | Per-Slide HDF5 Sharding | High-throughput 21.92ms batch binary storage | RGB crops, binary masks, zero vectors | Per-slide HDF5 files (`IMAGE_ID_cells.h5`) |
 | **1.3.1** | Macenko OD Factorization | Estimate slide-specific stain vectors via SVD | RGB cell crops | Stain concentration matrix $C$ & stain vectors $S$ |
