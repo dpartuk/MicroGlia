@@ -25,7 +25,8 @@ def extract_cells_with_cyan_sharpening(
 
     img_h, img_w = img.shape[:2]
 
-    # STEP 1: CONVERT TO HSV & EXTRACT CYAN CHROMINANCE MASK
+    # STEP 1: CONVERT TO HSV & EXTRACT WHOLE-SLIDE BINARY CYAN BORDER MAP
+    # Pre-Processing on Original Image: Cyan pixels = 255 (WHITE), All other pixels = 0 (BLACK)
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     lower_cyan = np.array([75, 40, 140], dtype=np.uint8)
     upper_cyan = np.array([115, 255, 255], dtype=np.uint8)
@@ -35,6 +36,10 @@ def extract_cells_with_cyan_sharpening(
     kernel_small = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     kernel_med = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     cyan_closed = cv2.morphologyEx(cyan_mask, cv2.MORPH_CLOSE, kernel_med)
+
+    # Save Whole-Slide Binary Cyan Border Map (Cyan=White, Other=Black)
+    cv2.imwrite(os.path.join(output_dir, "whole_slide_cyan_borders_white.jpg"), cyan_closed)
+    cv2.imwrite(os.path.join(output_dir, "whole_slide_cyan_borders_black_inv.jpg"), cv2.bitwise_not(cyan_closed))
 
     # STEP 2: GRAYSCALE MULTI-TILE CLAHE & SCHARR GRADIENT
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
