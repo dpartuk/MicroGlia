@@ -73,14 +73,19 @@ To isolate individual microglial cells and process fragments from gigapixel micr
 
 ### Sub-step 1.1.1: Multi-Tile CLAHE & Edge Gradient Fusion
 * **Purpose**: Raw bright-field microscopy slides suffer from non-uniform illumination and low optical contrast between microglial processes and parenchymal background. Contrast Limited Adaptive Histogram Equalization (CLAHE) over an $8\times8$ grid combined with Scharr/Canny edge gradient fusion accentuates fine process branches without amplifying background noise.
+* **4-Stage Pipeline Transformation**:
+  1. **Stage 1 (Raw Input)**: Raw whole-slide bright-field tissue slice showing shading gradients and low optical contrast between distal processes and parenchymal background.
+  2. **Stage 2 (Multi-Tile CLAHE)**: Local $8\times8$ grid histogram equalization with contrast limit (`clipLimit = 3.0`) unifies slide-wide illumination.
+  3. **Stage 3 (Scharr & Canny Edge Gradient Map)**: Scharr directional gradient filters ($K_x, K_y$) combined with Canny hysteresis tracing isolate high-frequency 1–2 pixel process tip edges.
+  4. **Stage 4 (Fused Combined Output)**: Blends 70% CLAHE intensity with 30% Scharr/Canny edge gradient map ($\alpha=0.7$), yielding the sharpened composite input for cell contour extraction.
 * **Input**:
   - Raw whole-slide microscopy images (`.jpg` or `.tiff`, $1920\times1440$ or $4096\times4096$ pixels).
   - Processing parameters: CLAHE `clipLimit = 3.0`, `tileGridSize = (8, 8)`.
 * **Output**:
   - Contrast-enhanced grayscale image matrices with sharpened cellular boundaries (`uint8 [H, W]`).
 
-![Sub-step 1.1.1 Input vs. Output: Multi-Tile CLAHE & Edge Gradient Fusion](/Users/dpeleg/local/MicroGlia/Data/step1_1_1_clahe_fusion_io.jpg)
-*Figure 1.1.1: Input vs. Output visual transformation for Sub-step 1.1.1. Left (Input): Raw whole-slide microscopy tissue image with non-uniform illumination. Right (Output): Multi-Tile CLAHE & Scharr/Canny edge gradient fused composite image.*
+![Sub-step 1.1.1 4-Stage Transformation: Multi-Tile CLAHE & Edge Gradient Fusion](/Users/dpeleg/local/MicroGlia/Data/step1_1_1_clahe_fusion_io.jpg)
+*Figure 1.1.1: 4-Stage visual transformation pipeline for Sub-step 1.1.1. Top-Left (A): Raw microscopy input. Top-Right (B): Multi-Tile CLAHE contrast enhanced image. Bottom-Left (C): Scharr & Canny edge gradient map. Bottom-Right (D): Fused combined composite output image.*
 
 ---
 
@@ -270,7 +275,7 @@ To build a gold-standard annotated benchmark dataset of 10,000 to 50,000 cells a
 
 | Step # | Sub-step Name | Purpose | Input | Output |
 | :--- | :--- | :--- | :--- | :--- |
-| **1.1.1** | CLAHE & Edge Fusion | Contrast enhancement of slide background | Raw whole-slide image (`.jpg`/`.tiff`) | Contrast-enhanced grayscale slide (`step1_1_1_clahe_fusion_io.jpg`) |
+| **1.1.1** | CLAHE & Edge Fusion | Contrast enhancement & edge gradient fusion | Raw whole-slide image (`.jpg`/`.tiff`) | 4-Stage Fused Grayscale Slide (`step1_1_1_clahe_fusion_io.jpg`) |
 | **1.1.2** | Cyan Contour Extraction | Isolate cyan-contoured cells & deduplicate | CLAHE slide + HSV color thresholds | Single-cell RGB crops `[128,128,3]` (`step1_1_2_cyan_dedup_io.jpg`) |
 | **1.1.3** | Boundary Sharpening | Extract clean binary silhouette masks | Single-cell RGB crops | Binary silhouette masks `[128,128]` (`step1_1_3_boundary_sharpening_io.jpg`) |
 | **1.2.1** | MongoDB Indexing | Fast indexing of cell metadata & active labels | Cell metadata & spatial BBoxes | MongoDB `microglia_metadata` JSON collection |
