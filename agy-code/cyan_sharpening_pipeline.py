@@ -41,7 +41,8 @@ def extract_cells_with_cyan_sharpening(
     cv2.imwrite(os.path.join(output_dir, "whole_slide_cyan_borders_white.jpg"), cyan_closed)
     cv2.imwrite(os.path.join(output_dir, "whole_slide_cyan_borders_black_inv.jpg"), cv2.bitwise_not(cyan_closed))
 
-    # STEP 2: GRAYSCALE MULTI-TILE CLAHE & SCHARR GRADIENT
+    # STEP 2: DUAL-STREAM EDGE GRADIENT COMPUTATION
+    # Stream A: Grayscale Multi-Tile CLAHE & Scharr Gradient on Tissue Image
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
     clahe_gray = clahe.apply(gray)
@@ -51,14 +52,19 @@ def extract_cells_with_cyan_sharpening(
     scharr_mag = cv2.magnitude(scharr_x, scharr_y)
     scharr_norm = np.uint8(np.clip(scharr_mag / np.max(scharr_mag) * 255.0, 0, 255))
 
-    canny_edges = cv2.Canny(clahe_gray, 40, 120)
-    edge_fused = cv2.addWeighted(scharr_norm, 0.7, canny_edges, 0.3, 0)
+    # Stream B: Canny 1-Pixel Edge Tracing on Whole-Slide Binary Cyan Border Image (B_cyan)
+    canny_cyan_border = cv2.Canny(cyan_closed, 50, 150)
 
-    # STEP 3: CYAN-GUIDED TOPOLOGICAL EDGE FUSION
-    # Multiply intensity edge map by cyan mask boost to anchor cell boundaries
-    cyan_boost = np.where(cyan_closed > 0, 1.5, 1.0).astype(np.float32)
-    cyan_fused_float = cv2.addWeighted(clahe_gray, 0.65, edge_fused, 0.35, 0).astype(np.float32) * cyan_boost
-    cyan_sharpened = np.uint8(np.clip(cyan_fused_float, 0, 255))
+    # STEP 3: CYAN-GUIDED TOPOLOGICAL DUAL-STREAM FUSION
+    # Combine 1-Pixel Cyan Border Ring with Sharpened Cell Arbors Inside Cyan Mask
+    cyan_mask_normalized = (cyan_closed > 0).astype(np.float32)
+    tissue_arbors_inside_cyan = (scharr_norm.astype(np.float32) * cyan_mask_normalized)
+
+    # Fused Output: 1-Pixel Canny Cyan Outline + Masked Scharr Cell Arbors + CLAHE Baseline
+    fused_cyan_float = (0.50 * clahe_gray.astype(np.float32) +
+                        0.30 * tissue_arbors_inside_cyan +
+                        0.20 * canny_cyan_border.astype(np.float32))
+    cyan_sharpened = np.uint8(np.clip(fused_cyan_float, 0, 255))
 
     # STEP 4: CONTOUR EXTRACTION & CANDIDATE DEDUPLICATION
     contours, _ = cv2.findContours(cyan_closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
