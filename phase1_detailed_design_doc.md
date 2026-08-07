@@ -90,16 +90,36 @@ To isolate individual microglial cells and process fragments from gigapixel micr
 ---
 
 ### Sub-step 1.1.2: Sub-Cell IoU Deduplication & Cyan Contour Isolation
-* **Purpose**: Microscopy protocol marks cells using cyan contours. This sub-step detects cyan contours, crops single-cell bounding boxes, and applies contained sub-cell Intersection over Union (IoU) deduplication ($IoU > 0.5$) to eliminate duplicate overlapping crops.
-* **Input**:
-  - CLAHE-enhanced tissue slides and raw RGB images.
-  - Cyan HSV color mask thresholding parameters: `lower_cyan = [85, 100, 100]`, `upper_cyan = [95, 255, 255]`.
-* **Output**:
-  - Isolated single-cell RGB crops (`uint8 [128, 128, 3]`).
-  - Spatial BBox coordinates `[x, y, w, h]` relative to the original whole slide.
 
-![Sub-step 1.1.2 Input vs. Output: Cyan Contour Isolation & Sub-Cell IoU Deduplication](/Users/dpeleg/local/MicroGlia/Data/step1_1_2_cyan_dedup_io.jpg)
-*Figure 1.1.2: Input vs. Output visual transformation for Sub-step 1.1.2. Left (Input): Fused tissue slide overlaid with cyan contour thresholding. Right (Output): Deduplicated 128x128 single-cell RGB crop grid.*
+Sub-step 1.1.2 is split into two internal sequential stages: **Stage 1 (Cyan Contour Isolation)** and **Stage 2 (Sub-Cell IoU Deduplication)**. Below is the detailed breakdown and full-resolution visual demonstration for each stage:
+
+---
+
+#### **Sub-step 1.1.2 - Stage 1: Cyan Contour Isolation (HSV Segmentation)**
+* **Purpose**: In the lab imaging protocol, microglial somas are annotated using hand-drawn cyan contour rings. Converting RGB to **HSV (Hue, Saturation, Value)** space decouples color identity (Hue) from lighting variations, isolating cyan rings ($H \in [85, 105]$) to center bounding boxes around each soma.
+* **Input Image (Stage 1)**: Fused tissue slide from Sub-step 1.1.1.
+* **Output Image (Stage 1)**: HSV Thresholded Cyan Mask Overlay highlighting every annotated cyan ring in bright cyan.
+
+![Sub-step 1.1.2 Stage 1 Input: Fused Tissue Slide](/Users/dpeleg/local/MicroGlia/Data/step1_1_2_stage1_input_fused_slide.jpg)
+*Figure 1.1.2.1a (Stage 1 Input): Fused contrast-balanced tissue slide ready for HSV cyan color thresholding.*
+
+![Sub-step 1.1.2 Stage 1 Output: Cyan HSV Contour Overlay Mask](/Users/dpeleg/local/MicroGlia/Data/step1_1_2_stage1_output_cyan_overlay.jpg)
+*Figure 1.1.2.1b (Stage 1 Output): HSV thresholded cyan mask overlay ($H \in [85, 105]$), locating all cell body contour rings.*
+
+---
+
+#### **Sub-step 1.1.2 - Stage 2: Sub-Cell IoU Deduplication (IoMin Candidate Filtering)**
+* **Purpose**: Contour extraction generates duplicate candidate bounding boxes (e.g. tight soma box vs. larger soma+process box). Standard NMS (Intersection over Union) fails when a small box $B$ is completely nested inside a larger box $A$. We compute **Sub-Cell IoMin (Intersection over Minimum Area)**:
+  $$\text{IoMin}(A, B) = \frac{\text{Area}(A \cap B)}{\min(\text{Area}(A), \text{Area}(B))}$$
+  If $\text{IoMin}(A, B) > 0.50$, the duplicate nested sub-cell box is discarded, retaining only the single optimal $128\times128$ crop anchor.
+* **Input Image (Stage 2)**: Candidate bounding boxes showing duplicate, overlapping nested boxes (drawn in Red).
+* **Output Image (Stage 2)**: Clean, deduplicated bounding box anchors (drawn in Green) centered on verified cell bodies.
+
+![Sub-step 1.1.2 Stage 2 Input: Candidate Overlapping & Nested Bounding Boxes](/Users/dpeleg/local/MicroGlia/Data/step1_1_2_stage2_input_overlapping_bboxes.jpg)
+*Figure 1.1.2.2a (Stage 2 Input): Initial candidate bounding boxes containing duplicate and nested sub-cell boxes (shown in Red).*
+
+![Sub-step 1.1.2 Stage 2 Output: Clean Deduplicated Bounding Box Anchors](/Users/dpeleg/local/MicroGlia/Data/step1_1_2_stage2_output_dedup_grid.jpg)
+*Figure 1.1.2.2b (Stage 2 Output): Clean, non-redundant bounding box anchors after Sub-Cell IoMin deduplication ($\text{IoMin} > 0.50$, shown in Green).*
 
 ---
 
@@ -276,7 +296,8 @@ To build a gold-standard annotated benchmark dataset of 10,000 to 50,000 cells a
 | Step # | Sub-step Name | Purpose | Input | Output |
 | :--- | :--- | :--- | :--- | :--- |
 | **1.1.1** | CLAHE & Edge Fusion | Contrast enhancement & edge gradient fusion | Raw whole-slide image (`.jpg`/`.tiff`) | 4-Stage Fused Grayscale Slide (`step1_1_1_clahe_fusion_io.jpg`) |
-| **1.1.2** | Cyan Contour Extraction | Isolate cyan-contoured cells & deduplicate | CLAHE slide + HSV color thresholds | Single-cell RGB crops `[128,128,3]` (`step1_1_2_cyan_dedup_io.jpg`) |
+| **1.1.2 (Stage 1)** | Cyan Contour Isolation | Isolate cyan-contoured cells via HSV | Fused slide (`step1_1_2_stage1_input_fused_slide.jpg`) | Cyan mask overlay (`step1_1_2_stage1_output_cyan_overlay.jpg`) |
+| **1.1.2 (Stage 2)** | Sub-Cell IoU Deduplication | Discard duplicate nested sub-cell boxes | Overlapping BBoxes (`step1_1_2_stage2_input_overlapping_bboxes.jpg`) | Deduplicated BBoxes (`step1_1_2_stage2_output_dedup_grid.jpg`) |
 | **1.1.3** | Boundary Sharpening | Extract clean binary silhouette masks | Single-cell RGB crops | Binary silhouette masks `[128,128]` (`step1_1_3_boundary_sharpening_io.jpg`) |
 | **1.2.1** | MongoDB Indexing | Fast indexing of cell metadata & active labels | Cell metadata & spatial BBoxes | MongoDB `microglia_metadata` JSON collection |
 | **1.2.2** | Per-Slide HDF5 Sharding | High-throughput 21.92ms batch binary storage | RGB crops, binary masks, zero vectors | Per-slide HDF5 files (`IMAGE_ID_cells.h5`) |
