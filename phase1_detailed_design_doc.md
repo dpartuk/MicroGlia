@@ -73,19 +73,14 @@ To isolate individual microglial cells and process fragments from gigapixel micr
 
 ### Sub-step 1.1.1: Multi-Tile CLAHE & Edge Gradient Fusion
 * **Purpose**: Raw bright-field microscopy slides suffer from non-uniform illumination and low optical contrast between microglial processes and parenchymal background. Contrast Limited Adaptive Histogram Equalization (CLAHE) over an $8\times8$ grid combined with Scharr/Canny edge gradient fusion accentuates fine process branches without amplifying background noise.
-* **4-Stage Pipeline Transformation**:
-  1. **Stage 1 (Raw Input)**: Raw whole-slide bright-field tissue slice showing shading gradients and low optical contrast between distal processes and parenchymal background.
-  2. **Stage 2 (Multi-Tile CLAHE)**: Local $8\times8$ grid histogram equalization with contrast limit (`clipLimit = 3.0`) unifies slide-wide illumination.
-  3. **Stage 3 (Scharr & Canny Edge Gradient Map)**: Scharr directional gradient filters ($K_x, K_y$) combined with Canny hysteresis tracing isolate high-frequency 1–2 pixel process tip edges.
-  4. **Stage 4 (Fused Combined Output)**: Blends 70% CLAHE intensity with 30% Scharr/Canny edge gradient map ($\alpha=0.7$), yielding the sharpened composite input for cell contour extraction.
 * **Input**:
   - Raw whole-slide microscopy images (`.jpg` or `.tiff`, $1920\times1440$ or $4096\times4096$ pixels).
-  - Processing parameters: CLAHE `clipLimit = 3.0`, `tileGridSize = (8, 8)`.
+  - Parameters: CLAHE `clipLimit = 3.0`, `tileGridSize = (8, 8)`.
 * **Output**:
   - Contrast-enhanced grayscale image matrices with sharpened cellular boundaries (`uint8 [H, W]`).
 
 ![Sub-step 1.1.1 4-Stage Transformation: Multi-Tile CLAHE & Edge Gradient Fusion](/Users/dpeleg/local/MicroGlia/Data/step1_1_1_clahe_fusion_io.jpg)
-*Figure 1.1.1: 4-Stage visual transformation pipeline for Sub-step 1.1.1. Top-Left (A): Raw microscopy input. Top-Right (B): Multi-Tile CLAHE contrast enhanced image. Bottom-Left (C): Scharr & Canny edge gradient map. Bottom-Right (D): Fused combined composite output image.*
+*Figure 1.1.1: 4-Stage visual transformation pipeline for Sub-step 1.1.1. Top-Left (A): Stage 1 Raw microscopy input. Top-Right (B): Stage 2 Multi-Tile CLAHE contrast enhanced image. Bottom-Left (C): Stage 3 Scharr & Canny edge gradient map. Bottom-Right (D): Stage 4 Fused combined composite output image.*
 
 ---
 
@@ -97,8 +92,8 @@ Sub-step 1.1.2 is split into two internal sequential stages: **Stage 1 (Cyan Con
 
 #### **Sub-step 1.1.2 - Stage 1: Cyan Contour Isolation (HSV Segmentation)**
 * **Purpose**: In the lab imaging protocol, microglial somas are annotated using hand-drawn cyan contour rings. Converting RGB to **HSV (Hue, Saturation, Value)** space decouples color identity (Hue) from lighting variations, isolating cyan rings ($H \in [85, 105]$) to center bounding boxes around each soma.
-* **Input Image (Stage 1)**: Fused tissue slide from Sub-step 1.1.1.
-* **Output Image (Stage 1)**: HSV Thresholded Cyan Mask Overlay highlighting every annotated cyan ring in bright cyan.
+* **Input**: Fused tissue slide from Sub-step 1.1.1.
+* **Output**: HSV Thresholded Cyan Mask Overlay highlighting every annotated cyan ring in bright cyan.
 
 ![Sub-step 1.1.2 Stage 1 Input: Fused Tissue Slide](/Users/dpeleg/local/MicroGlia/Data/step1_1_2_stage1_input_fused_slide.jpg)
 *Figure 1.1.2.1a (Stage 1 Input): Fused contrast-balanced tissue slide ready for HSV cyan color thresholding.*
@@ -112,8 +107,8 @@ Sub-step 1.1.2 is split into two internal sequential stages: **Stage 1 (Cyan Con
 * **Purpose**: Contour extraction generates duplicate candidate bounding boxes (e.g. tight soma box vs. larger soma+process box). Standard NMS (Intersection over Union) fails when a small box $B$ is completely nested inside a larger box $A$. We compute **Sub-Cell IoMin (Intersection over Minimum Area)**:
   $$\text{IoMin}(A, B) = \frac{\text{Area}(A \cap B)}{\min(\text{Area}(A), \text{Area}(B))}$$
   If $\text{IoMin}(A, B) > 0.50$, the duplicate nested sub-cell box is discarded, retaining only the single optimal $128\times128$ crop anchor.
-* **Input Image (Stage 2)**: Candidate bounding boxes showing duplicate, overlapping nested boxes (drawn in Red).
-* **Output Image (Stage 2)**: Clean, deduplicated bounding box anchors (drawn in Green) centered on verified cell bodies.
+* **Input**: Candidate bounding boxes showing duplicate, overlapping nested boxes (drawn in Red).
+* **Output**: Clean, deduplicated bounding box anchors (drawn in Green) centered on verified cell bodies.
 
 ![Sub-step 1.1.2 Stage 2 Input: Candidate Overlapping & Nested Bounding Boxes](/Users/dpeleg/local/MicroGlia/Data/step1_1_2_stage2_input_overlapping_bboxes.jpg)
 *Figure 1.1.2.2a (Stage 2 Input): Initial candidate bounding boxes containing duplicate and nested sub-cell boxes (shown in Red).*
@@ -125,20 +120,7 @@ Sub-step 1.1.2 is split into two internal sequential stages: **Stage 1 (Cyan Con
 
 ### Sub-step 1.1.3: Boundary Sharpening & Binary Silhouette Mask Extraction (`boundary_sharpening_pipeline.py`)
 
-#### **Purpose: Why Boundary Sharpening & Binary Silhouette Masking is Essential**
-1. **Background Noise & Debris Removal**: Extracted single-cell RGB crops ($128\times128\times3$) contain non-relevant background parenchyma, red blood cells, and fragments from neighboring cells. Boundary sharpening isolates **only** the target cell body and its attached process arbor.
-2. **Morphological Metric Calculation**: Downstream classification relies on precise morphometric descriptors (total area, perimeter, soma-to-cell area ratio, fractal dimension $D_f$, lacunarity). These metrics require a clean binary mask where $1 = \text{cell body/process}$ and $0 = \text{background}$.
-3. **Dual-Input Representation**: Binary silhouette masks are paired side-by-side with raw RGB crops in HDF5 (`IMAGE_ID_cells.h5`) to provide structural shape context during DINOv2 + MAE self-supervised pre-training.
-
----
-
-#### **4-Stage Internal Pipeline Breakdown (`boundary_sharpening_pipeline.py`)**:
-
-1. **Stage 1 (Single-Cell Crop Input)**: Receives the $128\times128\times3$ RGB crop centered on the microglial cell body (`subcell_XXX_original_extracted.jpg`).
-2. **Stage 2 (Single-Crop Scharr High-Pass Filtering)**: Applies local CLAHE (`clipLimit = 4.0`, `tileGridSize = (4,4)`) and Scharr first-order gradient magnitude calculation ($G = \sqrt{G_x^2 + G_y^2}$) to highlight process membrane edges.
-3. **Stage 3 (Adaptive Otsu Thresholding & Morphological Closing)**: Computes an optimal global threshold using Otsu's binarization (`cv2.THRESH_OTSU`) and applies morphological closing with a $3\times3$ ellipse structuring element to bridge tiny gaps in thin process branches.
-4. **Stage 4 (Connected Component Debris Filtering & Binary Silhouette Mask Output)**: Evaluates connected component contours $C_k$. The central contour containing the target soma anchor is retained, while unattached floating background debris and partial neighbor fragments are stripped away. The result is saved as a clean binary silhouette mask (`subcell_XXX_sharpened_extracted.jpg`, `uint8 [128, 128]`).
-
+* **Purpose**: To strip away unattached parenchymal background debris and neighbor cell fragments from extracted RGB crops ($128\times128\times3$), isolating **only** the target cell body and its attached process arbor into a clean binary silhouette mask ($1 = \text{cell body/arbor}$, $0 = \text{background}$).
 * **Input**: Single-cell RGB crop (`subcell_224_original_extracted.jpg`, $128\times128\times3$).
 * **Output**: Sharpened binary silhouette mask (`subcell_224_sharpened_extracted.jpg`, $128\times128$).
 
@@ -193,18 +175,21 @@ To eliminate inter-batch immunohistochemistry (IHC) color variations, stain inte
 ### Sub-step 1.3.1: Macenko Optical Density (OD) Matrix Factorization
 * **Purpose**: Convert RGB pixel intensities into Optical Density (OD) space via Beer-Lambert law ($OD = -\log_{10}(I / I_0)$) and perform Singular Value Decomposition (SVD) to estimate the slide's unique Stain Vector Matrix ($S \in \mathbb{R}^{2 \times 3}$).
 * **Input**:
-  - Raw single-cell RGB crops (`uint8 [128, 128, 3]`).
+  - Single-cell RGB crops (`uint8 [128, 128, 3]`).
 * **Output**:
-  - Stain matrix vectors $S_{\text{est}}$ and stain concentration maps $C \in \mathbb{R}^{N \times 2}$.
+  - Estimated Stain Matrix $S \in \mathbb{R}^{2 \times 3}$ and pixel-wise Stain Concentrations $C \in \mathbb{R}^{N \times 2}$.
 
 ---
 
 ### Sub-step 1.3.2: Stain Alignment & Target Re-Coloration
-* **Purpose**: Project the cell's stain concentrations onto a standardized laboratory reference target matrix ($S_{\text{target}}$) and re-convert to RGB space.
+* **Purpose**: Project the cell's stain concentrations $C$ onto a standardized laboratory reference target matrix ($S_{\text{target}}$) and re-convert to RGB space.
 * **Input**:
-  - Estimated stain concentrations $C$ and target stain matrix $S_{\text{target}}$.
+  - Raw un-normalized cell crop `[128, 128, 3]` and laboratory reference target matrix $S_{\text{target}}$.
 * **Output**:
-  - Stain-normalized single-cell RGB crops (`uint8 [128, 128, 3]`) stored back into HDF5 containers.
+  - Macenko stain-normalized single-cell RGB crop `[128, 128, 3]` saved back into HDF5 shards (`IMAGE_ID_cells.h5`).
+
+![Sub-step 1.3 Input vs. Output: Macenko Stain Normalization Engine](/Users/dpeleg/local/MicroGlia/Data/step1_3_stain_norm_io.jpg)
+*Figure 1.3: Input vs. Output visual transformation for Step 1.3. Left (Input): Raw un-normalized single-cell crop with variable batch stain color. Right (Output): Macenko stain-normalized single-cell crop aligned to standardized laboratory reference target.*
 
 ---
 
@@ -218,9 +203,9 @@ To train an in-domain Vision Transformer (ViT-Base, $D=768$) backbone on 1,000,0
 ### Sub-step 1.4.1: Shared Vision Transformer (ViT-Base) Backbone Initialization
 * **Purpose**: Initialize a Vision Transformer architecture with patch size $14 \times 14$, embedding dimension $D = 768$, 12 attention heads, and 12 transformer layers.
 * **Input**:
-  - ViT-Base architecture parameters ($D=768$, patch size $14\times14$, input size $128\times128$).
+  - ViT-Base architecture specification ($D=768$, patch size $14\times14$, input size $128\times128$).
 * **Output**:
-  - Initialized ViT-Base model graph with ~86 million trainable parameters.
+  - Initialized ViT-Base model graph with ~86 million trainable parameters ready for SSL training.
 
 ---
 
@@ -229,10 +214,10 @@ To train an in-domain Vision Transformer (ViT-Base, $D=768$) backbone on 1,000,0
   1. **DINOv2 Self-Distillation Loss ($\mathcal{L}_{\text{DINOv2}}$)**: Aligns Student ViT and Teacher ViT representations across global/local crops, learning **high-level semantic cell state separation**.
   2. **MAE Masked Reconstruction Loss ($\mathcal{L}_{\text{MAE}}$)**: Masks 75% of image patches and reconstructs missing pixels, learning **fine-grained process arbor tip textures**.
 * **Input**:
-  - Batches of stain-normalized cell crops `[B, 128, 128, 3]`.
+  - Batches of stain-normalized cell crops `[B, 128, 128, 3]` loaded from HDF5 shards.
   - Loss weight parameter: $\mathcal{L}_{\text{Total}} = \mathcal{L}_{\text{DINOv2}} + 0.5 \cdot \mathcal{L}_{\text{MAE}}$.
 * **Output**:
-  - Pre-trained domain-specific ViT-Base feature encoder weights (`vit_base_microglia_ssl.pth`).
+  - Pre-trained domain-specific ViT-Base feature encoder weights saved to disk (`vit_base_microglia_ssl.pth`).
 
 ---
 
@@ -246,16 +231,16 @@ To map all 1,000,000+ cell crops into a structured vector space, run dimensional
 ### Sub-step 1.5.1: Batch 768-Dim Feature Embedding Extraction & HDF5 Storage
 * **Purpose**: Pass every single-cell crop through the pre-trained ViT encoder to extract its 768-dimensional feature representation $h_i \in \mathbb{R}^{768}$.
 * **Input**:
-  - Pre-trained ViT encoder weights and all cell crops from HDF5 shards.
+  - Pre-trained ViT encoder weights (`vit_base_microglia_ssl.pth`) and cell crops from HDF5 shards.
 * **Output**:
-  - 768-dimensional embedding vectors stored in dataset `/embeddings` inside `IMAGE_ID_cells.h5`.
+  - 768-dimensional feature vectors stored in dataset `/embeddings` inside per-slide HDF5 containers (`IMAGE_ID_cells.h5`).
 
 ---
 
 ### Sub-step 1.5.2: UMAP Manifold Reduction & HDBSCAN Morphometric Clustering
 * **Purpose**: Reduce 768-dim embeddings down to a 2D/3D UMAP manifold and run HDBSCAN density clustering to partition the 1M+ embeddings into **~100 visual morphometric clusters**.
 * **Input**:
-  - 768-dimensional feature vectors $h_i \in \mathbb{R}^{768}$.
+  - 768-dimensional feature vectors $h_i \in \mathbb{R}^{768}$ loaded from HDF5.
   - Parameters: UMAP `n_neighbors = 30`, `min_dist = 0.1`; HDBSCAN `min_cluster_size = 150`.
 * **Output**:
   - Assigned `cluster_id` (0 to 99) written to MongoDB for every cell document.
@@ -275,7 +260,7 @@ To build a gold-standard annotated benchmark dataset of 10,000 to 50,000 cells a
   - MongoDB cell documents grouped by `cluster_id`.
   - Python uploader script (`cvat_bulk_uploader.py`) calling CVAT REST API (`/api/tasks`).
 * **Output**:
-  - Active CVAT Grid Tasks ready for visual inspection.
+  - Active CVAT Grid Tasks ready for visual inspection on CVAT web server (`http://localhost:8080` or `app.cvat.ai`).
 
 ---
 
@@ -290,16 +275,16 @@ To build a gold-standard annotated benchmark dataset of 10,000 to 50,000 cells a
     - `Senescent / Terminal / Resolution`: Ameboid / flat medium-large soma with **NO podia (0)**, clear bright appearance.
     - `Dystrophic`: Fragmented, shattered processes lacking a central soma anchor.
 * **Output**:
-  - Verified morphological state label assignments.
+  - Verified morphological state label assignments and high-entropy adjudication queue.
 
 ---
 
 ### Sub-step 1.6.3: MongoDB Gold-Standard Benchmark Dataset Label Synchronization
 * **Purpose**: Webhooks send verified labels back to MongoDB, instantly updating all cell documents in that cluster and creating the final labeled benchmark dataset.
 * **Input**:
-  - CVAT annotation webhooks.
+  - CVAT annotation webhooks sending JSON payload (`{cluster_id: 14, label: "Quiescent / Resting"}`).
 * **Output**:
-  - Updated MongoDB `active_label` fields, establishing the gold-standard labeled benchmark dataset of 10,000 to 50,000 microglial cells ready for Theme 2 Graph Neural Network training.
+  - Updated MongoDB `active_label` and `is_verified` fields, establishing the final gold-standard benchmark dataset of 10,000 to 50,000 microglial cells ready for Theme 2 Graph Neural Network training.
 
 ---
 
@@ -314,7 +299,7 @@ To build a gold-standard annotated benchmark dataset of 10,000 to 50,000 cells a
 | **1.2.1** | MongoDB Indexing | Fast indexing of cell metadata & active labels | Cell metadata & spatial BBoxes | MongoDB `microglia_metadata` JSON collection |
 | **1.2.2** | Per-Slide HDF5 Sharding | High-throughput 21.92ms batch binary storage | RGB crops, binary masks, zero vectors | Per-slide HDF5 files (`IMAGE_ID_cells.h5`) |
 | **1.3.1** | Macenko OD Factorization | Estimate slide-specific stain vectors via SVD | RGB cell crops | Stain concentration matrix $C$ & stain vectors $S$ |
-| **1.3.2** | Stain Re-Coloration | Standardize IHC stain colors across batches | Stain matrix $C$ & target reference $S_{\text{target}}$ | Stain-normalized RGB cell crops `[128,128,3]` |
+| **1.3.2** | Stain Re-Coloration | Standardize IHC stain colors across batches | Raw cell crops & reference target $S_{\text{target}}$ | Stain-normalized cell crops (`step1_3_stain_norm_io.jpg`) |
 | **1.4.1** | ViT Model Init | Setup Vision Transformer backbone graph | ViT-Base architecture parameters | Initialized ViT-Base graph ($D=768$, 86M params) |
 | **1.4.2** | Dual SSL Pre-Training | Pre-train ViT on 1M+ crops (DINOv2 + MAE) | Batches of stain-normalized crops | Pre-trained ViT weights (`vit_base_microglia_ssl.pth`) |
 | **1.5.1** | Feature Vector Extraction | Extract 768-dim embeddings for 1M+ crops | Pre-trained ViT & HDF5 cell crops | 768-dim vectors $h_i \in \mathbb{R}^{768}$ saved in HDF5 |
