@@ -173,11 +173,30 @@ To eliminate inter-batch immunohistochemistry (IHC) color variations, stain inte
 ---
 
 ### Sub-step 1.3.1: Macenko Optical Density (OD) Matrix Factorization
-* **Purpose**: Convert RGB pixel intensities into Optical Density (OD) space via Beer-Lambert law ($OD = -\log_{10}(I / I_0)$) and perform Singular Value Decomposition (SVD) to estimate the slide's unique Stain Vector Matrix ($S \in \mathbb{R}^{2 \times 3}$).
+
+#### **Purpose: Linear Deconvolution of Chemical Dye Vectors via SVD**
+In bright-field immunohistochemistry (IHC), light attenuation follows the Beer-Lambert Law. Sub-step 1.3.1 converts raw RGB pixel intensities into linear Optical Density (OD) space and applies **Singular Value Decomposition (SVD)** to extract the 2 physical chemical stain vectors ($S \in \mathbb{R}^{2 \times 3}$) unique to that tissue slide.
+
+#### **Mathematical Formulation**:
+1. **Beer-Lambert Optical Density Conversion**:
+   $$OD = -\log_{10}\left(\frac{I}{I_0}\right)$$
+   where $I$ is the pixel RGB vector and $I_0 = 240.0$ is the transmitted background light intensity.
+2. **Transparent Pixel Thresholding**:
+   Filter out transparent background pixels ($OD < 0.15$) to isolate non-zero tissue stain vectors $\mathbf{V}_{\text{OD}} \in \mathbb{R}^{M \times 3}$.
+3. **Singular Value Decomposition (SVD)**:
+   Perform SVD on the covariance matrix of $\mathbf{V}_{\text{OD}}$ to project points onto the 2D plane spanned by the two largest singular vectors ($V_1, V_2$).
+4. **Stain Concentration Matrix Calculation ($C$)**:
+   $$\mathbf{C} = \mathbf{V}_{\text{OD}} \cdot S_{\text{est}}^T \quad (\mathbf{C} \in \mathbb{R}^{N \times 2})$$
+
 * **Input**:
-  - Single-cell RGB crops (`uint8 [128, 128, 3]`).
+  - Raw single-cell RGB crop tensor `[128, 128, 3]` ($I \in [0, 255]$).
+  - Background light intensity constant $I_0 = 240.0$.
 * **Output**:
-  - Estimated Stain Matrix $S \in \mathbb{R}^{2 \times 3}$ and pixel-wise Stain Concentrations $C \in \mathbb{R}^{N \times 2}$.
+  - Estimated Slide Stain Vector Matrix $S_{\text{est}} \in \mathbb{R}^{2 \times 3}$ (containing the 2 primary chemical dye vectors).
+  - Pixel-wise Stain Concentration Map $C \in \mathbb{R}^{N \times 2}$ (specifying exact dye amounts at every pixel location).
+
+![Sub-step 1.3.1 Input vs Output: Macenko SVD Optical Density Factorization](/Users/dpeleg/local/MicroGlia/Data/step1_3_1_macenko_svd_io.jpg)
+*Figure 1.3.1: Input vs. Output visual transformation for Sub-step 1.3.1. Left (Input): Raw single-cell RGB crop [128x128x3]. Right (Output): Optical Density SVD Stain Concentration Map C showing decomposed chemical dye distribution.*
 
 ---
 
@@ -188,8 +207,8 @@ To eliminate inter-batch immunohistochemistry (IHC) color variations, stain inte
 * **Output**:
   - Macenko stain-normalized single-cell RGB crop `[128, 128, 3]` saved back into HDF5 shards (`IMAGE_ID_cells.h5`).
 
-![Sub-step 1.3 Input vs. Output: Macenko Stain Normalization Engine](/Users/dpeleg/local/MicroGlia/Data/step1_3_stain_norm_io.jpg)
-*Figure 1.3: Input vs. Output visual transformation for Step 1.3. Left (Input): Raw un-normalized single-cell crop with variable batch stain color. Right (Output): Macenko stain-normalized single-cell crop aligned to standardized laboratory reference target.*
+![Sub-step 1.3.2 Input vs. Output: Macenko Stain Normalization Engine](/Users/dpeleg/local/MicroGlia/Data/step1_3_stain_norm_io.jpg)
+*Figure 1.3.2: Input vs. Output visual transformation for Sub-step 1.3.2. Left (Input): Raw un-normalized single-cell crop with variable batch stain color. Right (Output): Macenko stain-normalized single-cell crop aligned to standardized laboratory reference target.*
 
 ---
 
@@ -298,10 +317,10 @@ To build a gold-standard annotated benchmark dataset of 10,000 to 50,000 cells a
 | **1.1.3** | Boundary Sharpening | Extract clean binary silhouette masks | Single-cell RGB crops | 4-Stage Binary silhouette masks (`step1_1_3_boundary_sharpening_4stage.jpg`) |
 | **1.2.1** | MongoDB Indexing | Fast indexing of cell metadata & active labels | Cell metadata & spatial BBoxes | MongoDB `microglia_metadata` JSON collection |
 | **1.2.2** | Per-Slide HDF5 Sharding | High-throughput 21.92ms batch binary storage | RGB crops, binary masks, zero vectors | Per-slide HDF5 files (`IMAGE_ID_cells.h5`) |
-| **1.3.1** | Macenko OD Factorization | Estimate slide-specific stain vectors via SVD | RGB cell crops | Stain concentration matrix $C$ & stain vectors $S$ |
+| **1.3.1** | Macenko OD Factorization | Estimate slide-specific stain vectors via SVD | Single-cell RGB crop `[128,128,3]` | OD Concentration map $C$ & Stain matrix $S$ (`step1_3_1_macenko_svd_io.jpg`) |
 | **1.3.2** | Stain Re-Coloration | Standardize IHC stain colors across batches | Raw cell crops & reference target $S_{\text{target}}$ | Stain-normalized cell crops (`step1_3_stain_norm_io.jpg`) |
 | **1.4.1** | ViT Model Init | Setup Vision Transformer backbone graph | ViT-Base architecture parameters | Initialized ViT-Base graph ($D=768$, 86M params) |
-| **1.4.2** | Dual SSL Pre-Training | Pre-train ViT on 1M+ crops (DINOv2 + MAE) | Batches of stain-normalized crops | Pre-trained ViT weights (`vit_base_microglia_ssl.pth`) |
+| **1.4.2** | Dual SSL Pre-Training | Pre-train ViT on 1M+ crops (DINOv2 + MAE) | Batches of stain-normalized crops from HDF5 | Pre-trained ViT weights (`vit_base_microglia_ssl.pth`) |
 | **1.5.1** | Feature Vector Extraction | Extract 768-dim embeddings for 1M+ crops | Pre-trained ViT & HDF5 cell crops | 768-dim vectors $h_i \in \mathbb{R}^{768}$ saved in HDF5 |
 | **1.5.2** | UMAP & HDBSCAN Clustering | Group similar cell shapes into ~100 clusters | 768-dim feature vectors $h_i$ | Assigned `cluster_id` (0–99) written to MongoDB |
 | **1.6.1** | CVAT Task Generation | Generate $10\times10$ visual grid tasks | MongoDB cell documents by `cluster_id` | CVAT Grid Tasks ready for inspection |
