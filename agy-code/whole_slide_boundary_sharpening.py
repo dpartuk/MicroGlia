@@ -58,7 +58,7 @@ def sharpen_whole_slide_boundaries(
     path_orig = os.path.join(output_dir, f"{stem}_whole_slide_original.jpg")
     path_binary = os.path.join(output_dir, f"{stem}_whole_slide_binary_borders.jpg")
     path_scharr = os.path.join(output_dir, f"{stem}_whole_slide_scharr_edges.jpg")
-    path_canny = os.path.join(output_dir, f"{stem}_whole_slide_canny_cyan.jpg")
+    path_canny = os.path.join(output_dir, f"{stem}_ultra_thin_canny_borders.jpg")
     path_fused = os.path.join(output_dir, f"{stem}_whole_slide_fused_composite.jpg")
 
     cv2.imwrite(path_orig, img_bgr)
