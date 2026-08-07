@@ -240,12 +240,19 @@ def extract_cells_with_boundary_sharpening(
         extracted_sharp = np.where(mask_3ch > 0, crop_sharp, white_canvas)
         cv2.imwrite(os.path.join(output_dir, f"{subcell_id}_sharpened_extracted.jpg"), extracted_sharp)
 
-        # C: Update Overview Map on Original RGB Image
+        # C: Marked Context Copy showing location on original image
+        marked_img = img.copy()
+        cv2.rectangle(marked_img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        cv2.putText(marked_img, f"Subcell #{idx:03d}", (x1, max(14, y1 - 4)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 1)
+        cv2.imwrite(os.path.join(output_dir, f"{subcell_id}_marked.jpg"), marked_img)
+
+        # D: Update Overview Map on Original RGB Image
         cv2.rectangle(overview_original, (x1, y1), (x2, y2), (0, 255, 0), 2)
         cv2.putText(overview_original, str(idx), (x1, max(14, y1 - 4)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 1)
 
-        # D: Update Overview Map on Ultra-Sharpened Map
+        # E: Update Overview Map on Ultra-Sharpened Map
         cv2.rectangle(overview_sharpened, (x1, y1), (x2, y2), (0, 255, 0), 2)
         cv2.putText(overview_sharpened, str(idx), (x1, max(14, y1 - 4)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 1)
@@ -262,7 +269,7 @@ def generate_local_html_gallery(output_dir):
     """
     Generates a responsive Safari/Chrome web gallery for the extracted cells.
     """
-    jpg_files = sorted(glob.glob(os.path.join(output_dir, "*_extracted.jpg")))
+    jpg_files = sorted(glob.glob(os.path.join(output_dir, "subcell_*.jpg")))
     if not jpg_files: return
 
     rel_files = [os.path.basename(f) for f in jpg_files]
