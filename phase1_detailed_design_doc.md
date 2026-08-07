@@ -124,14 +124,26 @@ Sub-step 1.1.2 is split into two internal sequential stages: **Stage 1 (Cyan Con
 ---
 
 ### Sub-step 1.1.3: Boundary Sharpening & Binary Silhouette Mask Extraction (`boundary_sharpening_pipeline.py`)
-* **Purpose**: To isolate clean binary cellular silhouettes ($1 = \text{cell body/process}$, $0 = \text{background}$) from extracted RGB crops, eliminating surrounding debris and background artifacts.
-* **Input**:
-  - Single-cell RGB crops (`subcell_XXX_original_extracted.jpg`).
-* **Output**:
-  - High-fidelity binary silhouette masks (`subcell_XXX_sharpened_extracted.jpg`, `uint8 [128, 128]`).
 
-![Sub-step 1.1.3 Input vs. Output: Boundary Sharpening & Binary Silhouette Mask Extraction](/Users/dpeleg/local/MicroGlia/Data/step1_1_3_boundary_sharpening_io.jpg)
-*Figure 1.1.3: Input vs. Output visual transformation for Sub-step 1.1.3 (`boundary_sharpening_pipeline.py`). Left (Input): Raw single-cell RGB crop (`subcell_224_original_extracted.jpg`). Right (Output): Sharpened binary silhouette mask (`subcell_224_sharpened_extracted.jpg`).*
+#### **Purpose: Why Boundary Sharpening & Binary Silhouette Masking is Essential**
+1. **Background Noise & Debris Removal**: Extracted single-cell RGB crops ($128\times128\times3$) contain non-relevant background parenchyma, red blood cells, and fragments from neighboring cells. Boundary sharpening isolates **only** the target cell body and its attached process arbor.
+2. **Morphological Metric Calculation**: Downstream classification relies on precise morphometric descriptors (total area, perimeter, soma-to-cell area ratio, fractal dimension $D_f$, lacunarity). These metrics require a clean binary mask where $1 = \text{cell body/process}$ and $0 = \text{background}$.
+3. **Dual-Input Representation**: Binary silhouette masks are paired side-by-side with raw RGB crops in HDF5 (`IMAGE_ID_cells.h5`) to provide structural shape context during DINOv2 + MAE self-supervised pre-training.
+
+---
+
+#### **4-Stage Internal Pipeline Breakdown (`boundary_sharpening_pipeline.py`)**:
+
+1. **Stage 1 (Single-Cell Crop Input)**: Receives the $128\times128\times3$ RGB crop centered on the microglial cell body (`subcell_XXX_original_extracted.jpg`).
+2. **Stage 2 (Single-Crop Scharr High-Pass Filtering)**: Applies local CLAHE (`clipLimit = 4.0`, `tileGridSize = (4,4)`) and Scharr first-order gradient magnitude calculation ($G = \sqrt{G_x^2 + G_y^2}$) to highlight process membrane edges.
+3. **Stage 3 (Adaptive Otsu Thresholding & Morphological Closing)**: Computes an optimal global threshold using Otsu's binarization (`cv2.THRESH_OTSU`) and applies morphological closing with a $3\times3$ ellipse structuring element to bridge tiny gaps in thin process branches.
+4. **Stage 4 (Connected Component Debris Filtering & Binary Silhouette Mask Output)**: Evaluates connected component contours $C_k$. The central contour containing the target soma anchor is retained, while unattached floating background debris and partial neighbor fragments are stripped away. The result is saved as a clean binary silhouette mask (`subcell_XXX_sharpened_extracted.jpg`, `uint8 [128, 128]`).
+
+* **Input**: Single-cell RGB crop (`subcell_224_original_extracted.jpg`, $128\times128\times3$).
+* **Output**: Sharpened binary silhouette mask (`subcell_224_sharpened_extracted.jpg`, $128\times128$).
+
+![Sub-step 1.1.3 4-Stage Visual Transformation: Boundary Sharpening & Binary Silhouette Mask Extraction](/Users/dpeleg/local/MicroGlia/Data/step1_1_3_boundary_sharpening_4stage.jpg)
+*Figure 1.1.3: 4-Stage internal visual transformation pipeline for Sub-step 1.1.3 (`boundary_sharpening_pipeline.py`). Top-Left (A): Stage 1 Single-cell RGB crop input. Top-Right (B): Stage 2 Scharr high-pass edge contrast map. Bottom-Left (C): Stage 3 Otsu adaptive thresholding and morphological closing. Bottom-Right (D): Stage 4 Final sharpened binary silhouette mask output.*
 
 ---
 
@@ -298,7 +310,7 @@ To build a gold-standard annotated benchmark dataset of 10,000 to 50,000 cells a
 | **1.1.1** | CLAHE & Edge Fusion | Contrast enhancement & edge gradient fusion | Raw whole-slide image (`.jpg`/`.tiff`) | 4-Stage Fused Grayscale Slide (`step1_1_1_clahe_fusion_io.jpg`) |
 | **1.1.2 (Stage 1)** | Cyan Contour Isolation | Isolate cyan-contoured cells via HSV | Fused slide (`step1_1_2_stage1_input_fused_slide.jpg`) | Cyan mask overlay (`step1_1_2_stage1_output_cyan_overlay.jpg`) |
 | **1.1.2 (Stage 2)** | Sub-Cell IoU Deduplication | Discard duplicate nested sub-cell boxes | Overlapping BBoxes (`step1_1_2_stage2_input_overlapping_bboxes.jpg`) | Deduplicated BBoxes (`step1_1_2_stage2_output_dedup_grid.jpg`) |
-| **1.1.3** | Boundary Sharpening | Extract clean binary silhouette masks | Single-cell RGB crops | Binary silhouette masks `[128,128]` (`step1_1_3_boundary_sharpening_io.jpg`) |
+| **1.1.3** | Boundary Sharpening | Extract clean binary silhouette masks | Single-cell RGB crops | 4-Stage Binary silhouette masks (`step1_1_3_boundary_sharpening_4stage.jpg`) |
 | **1.2.1** | MongoDB Indexing | Fast indexing of cell metadata & active labels | Cell metadata & spatial BBoxes | MongoDB `microglia_metadata` JSON collection |
 | **1.2.2** | Per-Slide HDF5 Sharding | High-throughput 21.92ms batch binary storage | RGB crops, binary masks, zero vectors | Per-slide HDF5 files (`IMAGE_ID_cells.h5`) |
 | **1.3.1** | Macenko OD Factorization | Estimate slide-specific stain vectors via SVD | RGB cell crops | Stain concentration matrix $C$ & stain vectors $S$ |
