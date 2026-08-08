@@ -96,11 +96,11 @@ def process_whole_slide_contour_closing(
     output_dir="/Users/dpeleg/local/MicroGlia/Data/whole-slide-closed-contours"
 ):
     """
-    Batch Processor that walks over whole-slide binary border maps, detects unclosed contours,
-    bridges gaps, and outputs closed-contour border maps.
+    Batch Processor that walks over whole-slide ultra-thin 1-2 pixel Canny border maps,
+    detects unclosed contours, bridges gaps, and outputs razor-thin 1-2 pixel closed-contour border maps.
     """
     os.makedirs(output_dir, exist_ok=True)
-    binary_border_files = sorted(glob.glob(os.path.join(input_dir, "*_whole_slide_binary_borders.jpg")))
+    binary_border_files = sorted(glob.glob(os.path.join(input_dir, "*_ultra_thin_canny_borders.jpg")))
 
     if not binary_border_files:
         print(f"No binary border maps found in {input_dir}.")
@@ -113,7 +113,7 @@ def process_whole_slide_contour_closing(
     print("=======================================================================\n")
 
     for idx, border_path in enumerate(binary_border_files, start=1):
-        stem = os.path.basename(border_path).replace("_whole_slide_binary_borders.jpg", "")
+        stem = os.path.basename(border_path).replace("_ultra_thin_canny_borders.jpg", "")
         binary_map = cv2.imread(border_path, cv2.IMREAD_GRAYSCALE)
         if binary_map is None: continue
 
