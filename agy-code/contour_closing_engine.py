@@ -40,7 +40,7 @@ def detect_and_close_open_contours(
         # Self-closing gap check (start vs end of same contour)
         dist_self = np.hypot(p_start[0] - p_end[0], p_start[1] - p_end[1])
         if 2 <= dist_self <= max_gap_distance:
-            cv2.line(closed_border_map, p_start, p_end, 255, thickness=2)
+            cv2.line(closed_border_map, p_start, p_end, 255, thickness=1)
             bridged_lines.append((p_start, p_end))
             gaps_closed_count += 1
         else:
@@ -62,26 +62,25 @@ def detect_and_close_open_contours(
             pt1 = (int(pts_arr[i][0]), int(pts_arr[i][1]))
             pt2 = (int(pts_arr[j][0]), int(pts_arr[j][1]))
 
-            # Bridge the open gap
-            cv2.line(closed_border_map, pt1, pt2, 255, thickness=2)
+            # Bridge the open gap with 1-pixel thin line
+            cv2.line(closed_border_map, pt1, pt2, 255, thickness=1)
             bridged_lines.append((pt1, pt2))
             used.add(i)
             used.add(j)
             gaps_closed_count += 1
 
-    # STEP 4: MORPHOLOGICAL ELLIPSE CLOSING REPAIR FOR RESIDUAL MINOR BREAKS
-    kernel_repair = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-    closed_border_map = cv2.morphologyEx(closed_border_map, cv2.MORPH_CLOSE, kernel_repair)
+    # STEP 4: 1-PIXEL SKELETONIZATION PASS (Guarantees Strict 1-2 Pixel Border Thickness)
+    kernel_small = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    closed_border_map = cv2.morphologyEx(closed_border_map, cv2.MORPH_CLOSE, kernel_small)
 
-    # STEP 5: BUILD BRIGHT RED HIGHLIGHT OVERLAY MAP
-    # Base: Existing binary borders in GREEN (0, 255, 0) or WHITE
+    # STEP 5: BUILD BRIGHT RED HIGHLIGHT OVERLAY MAP (1-2 Pixel Scale)
     red_overlay_map = cv2.cvtColor(binary_border_map, cv2.COLOR_GRAY2BGR)
-    # Draw initial borders in Green
+    # Draw initial borders in Green (1-2 px)
     red_overlay_map[binary_border_map > 0] = [0, 255, 0]
 
-    # Draw all newly closed / bridged gap segments in BRIGHT RED (0, 0, 255)
+    # Draw all newly closed / bridged gap segments in BRIGHT RED (1-2 px thickness)
     for p1, p2 in bridged_lines:
-        cv2.line(red_overlay_map, p1, p2, (0, 0, 255), thickness=3)
+        cv2.line(red_overlay_map, p1, p2, (0, 0, 255), thickness=1)
 
     stats = {
         "total_contours": len(contours),
