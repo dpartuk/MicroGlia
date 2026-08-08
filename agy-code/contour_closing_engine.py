@@ -91,13 +91,38 @@ def detect_and_close_open_contours(
 
     return closed_border_map, red_overlay_map, stats
 
+def sharpen_red_overlay_map(red_overlay_bgr):
+    """
+    Applies Scharr & Canny Edge Gradient Filter to the Red Overlay Map.
+    Thins green borders and red closed gap lines into razor-sharp 1-pixel edge gradients.
+    """
+    green_mask = (red_overlay_bgr[:, :, 1] > 200) & (red_overlay_bgr[:, :, 2] < 50)
+    red_mask = (red_overlay_bgr[:, :, 2] > 200) & (red_overlay_bgr[:, :, 1] < 50)
+
+    # Canny 1-pixel edge thinning
+    canny_green = cv2.Canny(green_mask.astype(np.uint8) * 255, 50, 150)
+    canny_red = cv2.Canny(red_mask.astype(np.uint8) * 255, 50, 150)
+
+    # Scharr gradient filter
+    gray = cv2.cvtColor(red_overlay_bgr, cv2.COLOR_BGR2GRAY)
+    scharr_x = cv2.Scharr(gray, cv2.CV_64F, 1, 0)
+    scharr_y = cv2.Scharr(gray, cv2.CV_64F, 0, 1)
+    scharr_mag = cv2.magnitude(scharr_x, scharr_y)
+    scharr_norm = np.uint8(np.clip(scharr_mag / np.max(scharr_mag + 1e-6) * 255.0, 0, 255))
+
+    sharpened_overlay = np.zeros_like(red_overlay_bgr)
+    sharpened_overlay[canny_green > 0] = [0, 255, 0]  # Razor-thin 1px Green
+    sharpened_overlay[canny_red > 0] = [0, 0, 255]    # Razor-thin 1px Red
+
+    return sharpened_overlay, scharr_norm
+
 def process_whole_slide_contour_closing(
     input_dir="/Users/dpeleg/local/MicroGlia/Data/whole-slide-sharpened-borders",
     output_dir="/Users/dpeleg/local/MicroGlia/Data/whole-slide-closed-contours"
 ):
     """
     Batch Processor that walks over whole-slide binary border maps, detects unclosed contours,
-    bridges gaps, and outputs closed-contour border maps.
+    bridges gaps, and applies Scharr & Canny Edge Gradient Filter to generate sharpened red overlays.
     """
     os.makedirs(output_dir, exist_ok=True)
     binary_border_files = sorted(glob.glob(os.path.join(input_dir, "*_whole_slide_binary_borders.jpg")))
@@ -107,7 +132,7 @@ def process_whole_slide_contour_closing(
         return
 
     print("\n=======================================================================")
-    print(f" AUTOMATED CONTOUR CLOSING ENGINE ({len(binary_border_files)} SLIDES)")
+    print(f" AUTOMATED CONTOUR CLOSING & SCHARR/CANNY SHARPENING ENGINE ({len(binary_border_files)} SLIDES)")
     print(f" Input Directory: {input_dir}")
     print(f" Output Directory: {output_dir}")
     print("=======================================================================\n")
@@ -117,14 +142,20 @@ def process_whole_slide_contour_closing(
         binary_map = cv2.imread(border_path, cv2.IMREAD_GRAYSCALE)
         if binary_map is None: continue
 
-        # Run Ultra-Fast KDTree Contour Closing Engine
+        # Step 1: Contour Closing
         closed_map, red_overlay_map, stats = detect_and_close_open_contours(binary_map, max_gap_distance=30)
 
-        # Save Output Closed Border Maps & Red Highlight Overlay
+        # Step 2: Scharr & Canny Edge Gradient Sharpening on Red Overlay Map
+        sharpened_red_overlay, scharr_edges = sharpen_red_overlay_map(red_overlay_map)
+
+        # Save Artifacts
         path_closed = os.path.join(output_dir, f"{stem}_whole_slide_closed_borders.jpg")
         path_red_overlay = os.path.join(output_dir, f"{stem}_red_closed_borders_overlay.jpg")
+        path_sharpened_red = os.path.join(output_dir, f"{stem}_sharpened_red_overlay.jpg")
+
         cv2.imwrite(path_closed, closed_map)
         cv2.imwrite(path_red_overlay, red_overlay_map)
+        cv2.imwrite(path_sharpened_red, sharpened_red_overlay)
 
         # Build Side-by-Side Visual QA Comparison Panel (Original vs. Closed)
         orig_path = os.path.join(input_dir, f"{stem}_whole_slide_original.jpg")
@@ -144,7 +175,7 @@ def process_whole_slide_contour_closing(
 
         p1 = cv2.resize(img_orig, (s, s))
         p2 = cv2.resize(cv2.cvtColor(binary_map, cv2.COLOR_GRAY2BGR), (s, s))
-        p3 = cv2.resize(red_overlay_map, (s, s))
+        p3 = cv2.resize(sharpened_red_overlay, (s, s))
         p4 = cv2.resize(cv2.cvtColor(filled_contours_map, cv2.COLOR_GRAY2BGR), (s, s))
 
         panel[50:50+s, 40:40+s] = p1
@@ -154,7 +185,7 @@ def process_whole_slide_contour_closing(
 
         cv2.putText(panel, f"(A) Raw Input: {stem}", (40, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.60, (0, 51, 102), 2, cv2.LINE_AA)
         cv2.putText(panel, "(B) Initial Binary Border Map (With Unclosed Gaps)", (660, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 51, 102), 2, cv2.LINE_AA)
-        cv2.putText(panel, f"(C) Red Closed Borders ({stats['open_gaps_closed']} RED Gaps)", (40, 665), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 51, 102), 2, cv2.LINE_AA)
+        cv2.putText(panel, f"(C) Sharpened Red Borders ({stats['open_gaps_closed']} RED Gaps)", (40, 665), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 51, 102), 2, cv2.LINE_AA)
         cv2.putText(panel, "(D) Filled Closed 2D Cell Regions (100% Closed)", (660, 665), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 51, 102), 2, cv2.LINE_AA)
 
         path_panel = os.path.join(output_dir, f"{stem}_contour_closing_panel.jpg")
@@ -164,6 +195,7 @@ def process_whole_slide_contour_closing(
         print(f"  • Total Contours: {stats['total_contours']} | RED Gaps Closed: {stats['open_gaps_closed']}")
         print(f"  • Saved Closed Map: {path_closed}")
         print(f"  • Saved RED Overlay Map: {path_red_overlay}")
+        print(f"  • Saved Sharpened RED Overlay Map: {path_sharpened_red}")
         print(f"  • Saved Visual QA Panel: {path_panel}\n")
 
     print("=======================================================================")
