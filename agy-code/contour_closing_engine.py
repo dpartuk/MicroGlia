@@ -6,84 +6,72 @@ from scipy.spatial import cKDTree
 
 def detect_and_close_open_contours(
     binary_border_map,
-    max_gap_distance=30,
+    max_gap_distance=25,
     min_contour_length=10
 ):
     """
     Ultra-Fast KDTree Automated Contour Closing Engine.
-    Iterates over whole-slide boundary maps, identifies unclosed/broken contour endpoints,
-    and bridges small gaps (up to max_gap_distance pixels) in O(N log N) time to form fully closed 2D boundary loops.
+    Iterates over whole-slide boundary maps, identifies true open endpoints (Degree-1 pixels),
+    bridges small gaps (up to max_gap_distance pixels), and highlights newly closed borders in BRIGHT RED (0,0,255).
     """
     closed_border_map = binary_border_map.copy()
     h, w = closed_border_map.shape[:2]
 
-    # STEP 1: EXTRACT ALL CONTOUR POLYGONS
-    contours, hierarchy = cv2.findContours(
-        closed_border_map, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE
-    )
+    # STEP 1: FIND TRUE OPEN ENDPOINTS USING 3x3 NEIGHBORHOOD FILTER
+    bin_uint = (binary_border_map > 0).astype(np.uint8)
+    kernel_neigh = np.array([[1, 1, 1],
+                             [1, 0, 1],
+                             [1, 1, 1]], dtype=np.uint8)
 
-    if not contours:
-        return closed_border_map, {"total": 0, "open_gaps_closed": 0}
+    neigh_count = cv2.filter2D(bin_uint, -1, kernel_neigh, borderType=cv2.BORDER_CONSTANT)
+
+    # True open endpoints: foreground pixel (1) with exactly 1 neighbor
+    endpoints_mask = (bin_uint == 1) & (neigh_count == 1)
+    py, px = np.where(endpoints_mask)
+
+    endpoints = list(zip(px, py))
+    pts_arr = np.array(endpoints, dtype=np.float32)
 
     gaps_closed_count = 0
-    endpoints = []
     bridged_lines = []
 
-    # STEP 2: CHECK EACH CONTOUR FOR SELF-GAP OR OPEN ENDPOINTS
-    for c in contours:
-        if len(c) < min_contour_length:
-            continue
+    # STEP 2: BUILD BRIGHT RED OVERLAY BASE (Existing borders in Green 0,255,0)
+    red_overlay_map = cv2.cvtColor(binary_border_map, cv2.COLOR_GRAY2BGR)
+    red_overlay_map[binary_border_map > 0] = [0, 255, 0]
 
-        p_start = tuple(c[0][0])
-        p_end = tuple(c[-1][0])
-
-        # Self-closing gap check (start vs end of same contour)
-        dist_self = np.hypot(p_start[0] - p_end[0], p_start[1] - p_end[1])
-        if 2 <= dist_self <= max_gap_distance:
-            cv2.line(closed_border_map, p_start, p_end, 255, thickness=1)
-            bridged_lines.append((p_start, p_end))
-            gaps_closed_count += 1
-        else:
-            endpoints.append(p_start)
-            endpoints.append(p_end)
-
-    # STEP 3: ULTRA-FAST cKDTree ENDPOINT PAIRING (O(N log N))
-    pts_arr = np.array(endpoints, dtype=np.float32)
+    # STEP 3: ULTRA-FAST cKDTree ENDPOINT PAIRING & RED GAP BRIDGING
     num_pts = len(pts_arr)
-
     if num_pts > 1:
         tree = cKDTree(pts_arr)
-        # Find all pairs of endpoints within max_gap_distance
         pairs = tree.query_pairs(r=max_gap_distance)
 
         used = set()
-        for i, j in sorted(pairs, key=lambda p: np.hypot(pts_arr[p[0]][0]-pts_arr[p[1]][0], pts_arr[p[0]][1]-pts_arr[p[1]][1])):
+        for i, j in pairs:
             if i in used or j in used: continue
             pt1 = (int(pts_arr[i][0]), int(pts_arr[i][1]))
             pt2 = (int(pts_arr[j][0]), int(pts_arr[j][1]))
+            dist = np.hypot(pt1[0] - pt2[0], pt1[1] - pt2[1])
 
-            # Bridge the open gap with 1-pixel thin line
-            cv2.line(closed_border_map, pt1, pt2, 255, thickness=1)
-            bridged_lines.append((pt1, pt2))
-            used.add(i)
-            used.add(j)
-            gaps_closed_count += 1
+            if 2.0 <= dist <= max_gap_distance:
+                # 1. Draw 1-pixel line into output binary closed border map
+                cv2.line(closed_border_map, pt1, pt2, 255, thickness=1)
 
-    # STEP 4: 1-PIXEL SKELETONIZATION PASS (Guarantees Strict 1-2 Pixel Border Thickness)
+                # 2. Draw bright RED line & red marker dots into overlay map (Thickness 2 + dots for visibility)
+                cv2.line(red_overlay_map, pt1, pt2, (0, 0, 255), thickness=2)
+                cv2.circle(red_overlay_map, pt1, 3, (0, 0, 255), -1)
+                cv2.circle(red_overlay_map, pt2, 3, (0, 0, 255), -1)
+
+                bridged_lines.append((pt1, pt2))
+                used.add(i)
+                used.add(j)
+                gaps_closed_count += 1
+
+    # STEP 4: 1-PIXEL REPAIR PASS
     kernel_small = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     closed_border_map = cv2.morphologyEx(closed_border_map, cv2.MORPH_CLOSE, kernel_small)
 
-    # STEP 5: BUILD BRIGHT RED HIGHLIGHT OVERLAY MAP (1-2 Pixel Scale)
-    red_overlay_map = cv2.cvtColor(binary_border_map, cv2.COLOR_GRAY2BGR)
-    # Draw initial borders in Green (1-2 px)
-    red_overlay_map[binary_border_map > 0] = [0, 255, 0]
-
-    # Draw all newly closed / bridged gap segments in BRIGHT RED (1-2 px thickness)
-    for p1, p2 in bridged_lines:
-        cv2.line(red_overlay_map, p1, p2, (0, 0, 255), thickness=1)
-
     stats = {
-        "total_contours": len(contours),
+        "total_endpoints": len(endpoints),
         "open_gaps_closed": gaps_closed_count,
         "bridged_lines": bridged_lines
     }
@@ -96,7 +84,7 @@ def process_whole_slide_contour_closing(
 ):
     """
     Batch Processor that walks over whole-slide binary border maps, detects unclosed contours,
-    bridges gaps, and outputs closed-contour border maps.
+    bridges gaps, and outputs closed-contour border maps with bright RED gap overlays.
     """
     os.makedirs(output_dir, exist_ok=True)
     binary_border_files = sorted(glob.glob(os.path.join(input_dir, "*_whole_slide_binary_borders.jpg")))
@@ -117,13 +105,28 @@ def process_whole_slide_contour_closing(
         if binary_map is None: continue
 
         # Run Ultra-Fast KDTree Contour Closing Engine
-        closed_map, red_overlay_map, stats = detect_and_close_open_contours(binary_map, max_gap_distance=30)
+        closed_map, red_overlay_map, stats = detect_and_close_open_contours(binary_map, max_gap_distance=25)
 
         # Save Output Closed Border Maps & Red Highlight Overlay
         path_closed = os.path.join(output_dir, f"{stem}_whole_slide_closed_borders.jpg")
         path_red_overlay = os.path.join(output_dir, f"{stem}_red_closed_borders_overlay.jpg")
         cv2.imwrite(path_closed, closed_map)
         cv2.imwrite(path_red_overlay, red_overlay_map)
+
+        # Build 400% Zoomed-In ROI Crop showing exact RED gap closures in high detail
+        h_img, w_img = binary_map.shape[:2]
+        cx, cy = w_img // 2, h_img // 2
+        crop_size = 400
+        x1, y1 = max(0, cx - crop_size//2), max(0, cy - crop_size//2)
+        x2, y2 = min(w_img, x1 + crop_size), min(h_img, y1 + crop_size)
+
+        roi_overlay = red_overlay_map[y1:y2, x1:x2]
+        roi_zoom = cv2.resize(roi_overlay, (800, 800), interpolation=cv2.INTER_NEAREST)
+        cv2.putText(roi_zoom, "400% Zoom ROI: Red Closed Border Gaps", (20, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2, cv2.LINE_AA)
+
+        path_roi_zoom = os.path.join(output_dir, f"{stem}_red_closed_borders_ROI_zoom.jpg")
+        cv2.imwrite(path_roi_zoom, roi_zoom)
 
         # Build Side-by-Side Visual QA Comparison Panel (Original vs. Closed)
         orig_path = os.path.join(input_dir, f"{stem}_whole_slide_original.jpg")
@@ -160,9 +163,10 @@ def process_whole_slide_contour_closing(
         cv2.imwrite(path_panel, panel)
 
         print(f"[{idx}/{len(binary_border_files)}] Processed: {stem}")
-        print(f"  • Total Contours: {stats['total_contours']} | RED Gaps Closed: {stats['open_gaps_closed']}")
+        print(f"  • Total Open Endpoints: {stats['total_endpoints']} | RED Gaps Closed: {stats['open_gaps_closed']}")
         print(f"  • Saved Closed Map: {path_closed}")
         print(f"  • Saved RED Overlay Map: {path_red_overlay}")
+        print(f"  • Saved RED ROI Zoom: {path_roi_zoom}")
         print(f"  • Saved Visual QA Panel: {path_panel}\n")
 
     print("=======================================================================")
