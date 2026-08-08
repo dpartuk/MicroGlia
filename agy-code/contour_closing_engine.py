@@ -27,6 +27,7 @@ def detect_and_close_open_contours(
 
     gaps_closed_count = 0
     endpoints = []
+    bridged_lines = []
 
     # STEP 2: CHECK EACH CONTOUR FOR SELF-GAP OR OPEN ENDPOINTS
     for c in contours:
@@ -40,6 +41,7 @@ def detect_and_close_open_contours(
         dist_self = np.hypot(p_start[0] - p_end[0], p_start[1] - p_end[1])
         if 2 <= dist_self <= max_gap_distance:
             cv2.line(closed_border_map, p_start, p_end, 255, thickness=2)
+            bridged_lines.append((p_start, p_end))
             gaps_closed_count += 1
         else:
             endpoints.append(p_start)
@@ -62,6 +64,7 @@ def detect_and_close_open_contours(
 
             # Bridge the open gap
             cv2.line(closed_border_map, pt1, pt2, 255, thickness=2)
+            bridged_lines.append((pt1, pt2))
             used.add(i)
             used.add(j)
             gaps_closed_count += 1
@@ -70,12 +73,23 @@ def detect_and_close_open_contours(
     kernel_repair = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     closed_border_map = cv2.morphologyEx(closed_border_map, cv2.MORPH_CLOSE, kernel_repair)
 
+    # STEP 5: BUILD BRIGHT RED HIGHLIGHT OVERLAY MAP
+    # Base: Existing binary borders in GREEN (0, 255, 0) or WHITE
+    red_overlay_map = cv2.cvtColor(binary_border_map, cv2.COLOR_GRAY2BGR)
+    # Draw initial borders in Green
+    red_overlay_map[binary_border_map > 0] = [0, 255, 0]
+
+    # Draw all newly closed / bridged gap segments in BRIGHT RED (0, 0, 255)
+    for p1, p2 in bridged_lines:
+        cv2.line(red_overlay_map, p1, p2, (0, 0, 255), thickness=3)
+
     stats = {
         "total_contours": len(contours),
-        "open_gaps_closed": gaps_closed_count
+        "open_gaps_closed": gaps_closed_count,
+        "bridged_lines": bridged_lines
     }
 
-    return closed_border_map, stats
+    return closed_border_map, red_overlay_map, stats
 
 def process_whole_slide_contour_closing(
     input_dir="/Users/dpeleg/local/MicroGlia/Data/whole-slide-sharpened-borders",
@@ -104,11 +118,13 @@ def process_whole_slide_contour_closing(
         if binary_map is None: continue
 
         # Run Ultra-Fast KDTree Contour Closing Engine
-        closed_map, stats = detect_and_close_open_contours(binary_map, max_gap_distance=30)
+        closed_map, red_overlay_map, stats = detect_and_close_open_contours(binary_map, max_gap_distance=30)
 
-        # Save Output Closed Border Maps
+        # Save Output Closed Border Maps & Red Highlight Overlay
         path_closed = os.path.join(output_dir, f"{stem}_whole_slide_closed_borders.jpg")
+        path_red_overlay = os.path.join(output_dir, f"{stem}_red_closed_borders_overlay.jpg")
         cv2.imwrite(path_closed, closed_map)
+        cv2.imwrite(path_red_overlay, red_overlay_map)
 
         # Build Side-by-Side Visual QA Comparison Panel (Original vs. Closed)
         orig_path = os.path.join(input_dir, f"{stem}_whole_slide_original.jpg")
@@ -128,7 +144,7 @@ def process_whole_slide_contour_closing(
 
         p1 = cv2.resize(img_orig, (s, s))
         p2 = cv2.resize(cv2.cvtColor(binary_map, cv2.COLOR_GRAY2BGR), (s, s))
-        p3 = cv2.resize(cv2.cvtColor(closed_map, cv2.COLOR_GRAY2BGR), (s, s))
+        p3 = cv2.resize(red_overlay_map, (s, s))
         p4 = cv2.resize(cv2.cvtColor(filled_contours_map, cv2.COLOR_GRAY2BGR), (s, s))
 
         panel[50:50+s, 40:40+s] = p1
@@ -138,15 +154,16 @@ def process_whole_slide_contour_closing(
 
         cv2.putText(panel, f"(A) Raw Input: {stem}", (40, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.60, (0, 51, 102), 2, cv2.LINE_AA)
         cv2.putText(panel, "(B) Initial Binary Border Map (With Unclosed Gaps)", (660, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 51, 102), 2, cv2.LINE_AA)
-        cv2.putText(panel, f"(C) Closed Border Map ({stats['open_gaps_closed']} Gaps Closed)", (40, 665), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 51, 102), 2, cv2.LINE_AA)
+        cv2.putText(panel, f"(C) Red Closed Borders ({stats['open_gaps_closed']} RED Gaps)", (40, 665), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 51, 102), 2, cv2.LINE_AA)
         cv2.putText(panel, "(D) Filled Closed 2D Cell Regions (100% Closed)", (660, 665), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 51, 102), 2, cv2.LINE_AA)
 
         path_panel = os.path.join(output_dir, f"{stem}_contour_closing_panel.jpg")
         cv2.imwrite(path_panel, panel)
 
         print(f"[{idx}/{len(binary_border_files)}] Processed: {stem}")
-        print(f"  • Total Contours: {stats['total_contours']} | Gaps Closed: {stats['open_gaps_closed']}")
+        print(f"  • Total Contours: {stats['total_contours']} | RED Gaps Closed: {stats['open_gaps_closed']}")
         print(f"  • Saved Closed Map: {path_closed}")
+        print(f"  • Saved RED Overlay Map: {path_red_overlay}")
         print(f"  • Saved Visual QA Panel: {path_panel}\n")
 
     print("=======================================================================")
