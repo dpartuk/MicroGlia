@@ -210,6 +210,8 @@ def extract_cells_with_boundary_sharpening(
     sharpened_bgr = cv2.cvtColor(ultra_sharpened, cv2.COLOR_GRAY2BGR)
     overview_sharpened = sharpened_bgr.copy()
 
+    manifest_rows = []
+
     for idx, (x, y, w, h, area, contour) in enumerate(final_subcells, start=1):
         subcell_id = f"subcell_{idx:03d}"
 
@@ -233,19 +235,22 @@ def extract_cells_with_boundary_sharpening(
         white_canvas = np.full_like(crop_bgr, 255)
         mask_3ch = cv2.merge([crop_mask, crop_mask, crop_mask])
         extracted_orig = np.where(mask_3ch > 0, crop_bgr, white_canvas)
-        cv2.imwrite(os.path.join(output_dir, f"{subcell_id}_original_extracted.jpg"), extracted_orig)
+        orig_filename = f"{subcell_id}_original_extracted.jpg"
+        cv2.imwrite(os.path.join(output_dir, orig_filename), extracted_orig)
 
         # B: Crop directly from Ultra-Sharpened Map
         crop_sharp = sharpened_bgr[y1:y2, x1:x2]
         extracted_sharp = np.where(mask_3ch > 0, crop_sharp, white_canvas)
-        cv2.imwrite(os.path.join(output_dir, f"{subcell_id}_sharpened_extracted.jpg"), extracted_sharp)
+        sharp_filename = f"{subcell_id}_sharpened_extracted.jpg"
+        cv2.imwrite(os.path.join(output_dir, sharp_filename), extracted_sharp)
 
         # C: Marked Context Copy showing location on original image
         marked_img = img.copy()
         cv2.rectangle(marked_img, (x1, y1), (x2, y2), (0, 0, 255), 2)
         cv2.putText(marked_img, f"Subcell #{idx:03d}", (x1, max(14, y1 - 4)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 1)
-        cv2.imwrite(os.path.join(output_dir, f"{subcell_id}_marked.jpg"), marked_img)
+        location_filename = f"{subcell_id}_marked.jpg"
+        cv2.imwrite(os.path.join(output_dir, location_filename), marked_img)
 
         # D: Update Overview Map on Original RGB Image
         cv2.rectangle(overview_original, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -257,11 +262,33 @@ def extract_cells_with_boundary_sharpening(
         cv2.putText(overview_sharpened, str(idx), (x1, max(14, y1 - 4)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 1)
 
+        flagged = (area > 3500)
+        manifest_rows.append({
+            "cell_id": idx,
+            "x1": x1, "y1": y1, "x2": x2, "y2": y2,
+            "width": x2 - x1, "height": y2 - y1,
+            "area": int(area),
+            "original_filename": orig_filename,
+            "sharpened_filename": sharp_filename,
+            "location_filename": location_filename,
+            "flagged_possible_merge": flagged
+        })
+
     cv2.imwrite(os.path.join(output_dir, "overview_map_on_original.jpg"), overview_original)
     cv2.imwrite(os.path.join(output_dir, "overview_map_on_sharpened.jpg"), overview_sharpened)
 
-    # STEP 9: GENERATE INTERACTIVE SAFARI/CHROME WEB GALLERY
-    generate_local_html_gallery(output_dir)
+    # STEP 9: SAVE MANIFEST CSV
+    manifest_path = os.path.join(output_dir, "manifest.csv")
+    import csv
+    with open(manifest_path, "w", newline="") as f:
+        fieldnames = [
+            "cell_id", "x1", "y1", "x2", "y2", "width", "height", "area",
+            "original_filename", "sharpened_filename", "location_filename",
+            "flagged_possible_merge"
+        ]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(manifest_rows)
 
     return len(final_subcells)
 
