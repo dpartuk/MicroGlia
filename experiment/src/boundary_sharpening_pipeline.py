@@ -305,18 +305,23 @@ def extract_cells_with_boundary_sharpening(
                 is_dup_or_leg = True
                 break
 
-            # Proximity process attachment merger (Search radius: 12 px, for true filopodia < 90 px)
-            if ca1 < 90 and ca2 >= 180:
-                dist_x = max(0, max(cx1, cx2) - min(cx1 + cw1, cx2 + cw2))
-                dist_y = max(0, max(cy1, cy2) - min(cy1 + ch1, cy2 + ch2))
-                if inter_area >= 0.05 * box1_area or (dist_x <= 12 and dist_y <= 12):
-                    is_dup_or_leg = True
-                    contour_list = cc2 if isinstance(cc2, list) else [cc2]
-                    contour_list.extend(cc1 if isinstance(cc1, list) else [cc1])
-                    combined_pts = np.vstack(contour_list)
-                    cbx, cby, cbw, cbh = cv2.boundingRect(combined_pts)
-                    non_composite[j] = (cbx, cby, cbw, cbh, ca1 + ca2, contour_list)
-                    break
+            # Proximity process attachment merger (Search radius: 12 px, for filopodia < 90 px or thin filaments attached to large somas)
+            dist_x = max(0, max(cx1, cx2) - min(cx1 + cw1, cx2 + cw2))
+            dist_y = max(0, max(cy1, cy2) - min(cy1 + ch1, cy2 + ch2))
+
+            ar1 = max(cw1, ch1) / max(1, min(cw1, ch1))
+            min_dim1 = min(cw1, ch1)
+            is_thin_filament = (ar1 >= 2.5 or min_dim1 <= 8)
+
+            if (ca1 < 90 and ca2 >= 180 and dist_x <= 12 and dist_y <= 12) or \
+               (dist_x <= 6 and dist_y <= 6 and is_thin_filament and ca1 < 140 and ca2 >= 350):
+                is_dup_or_leg = True
+                contour_list = cc2 if isinstance(cc2, list) else [cc2]
+                contour_list.extend(cc1 if isinstance(cc1, list) else [cc1])
+                combined_pts = np.vstack(contour_list)
+                cbx, cby, cbw, cbh = cv2.boundingRect(combined_pts)
+                non_composite[j] = (cbx, cby, cbw, cbh, ca1 + ca2, contour_list)
+                break
 
         if not is_dup_or_leg:
             subcell_tuples.append(non_composite[i])
