@@ -44,8 +44,19 @@ def save_single_cell_debug_trace(
             return cv2.cvtColor(crop, cv2.COLOR_GRAY2BGR)
         return crop
 
-    # Individual step outputs tied to code steps:
+    # Zoomed Context Crop around the cell with highlighted bounding box (500x500 window)
+    cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+    zx1, zx2 = max(0, cx - 250), min(img_w, cx + 250)
+    zy1, zy2 = max(0, cy - 250), min(img_h, cy + 250)
+    zoomed_location = marked_img[zy1:zy2, zx1:zx2].copy()
+
+    # Draw clear crosshair/box marker on zoomed location
+    cv2.putText(zoomed_location, f"Target Candidate BBox: ({x1},{y1})-({x2},{y2})", (10, 24),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.50, (0, 229, 255), 1, cv2.LINE_AA)
+
+    # Individual step outputs tied to code steps (starting with Step 0: Bounding Box Location):
     step_images = {
+        "00_step0_bounding_box_location.jpg": zoomed_location,
         "01_step1_raw_rgb_roi.jpg": crop_bgr(img),
         "02_step1_cyan_signal.jpg": crop_bgr(signal),
         "03_step2_bilateral_denoised.jpg": crop_bgr(bilateral),
@@ -67,11 +78,6 @@ def save_single_cell_debug_trace(
     for fname, img_data in step_images.items():
         cv2.imwrite(os.path.join(debug_dir, fname), img_data)
 
-    # Zoomed Context Crop around the cell (500x500 window centered on cell)
-    cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-    zx1, zx2 = max(0, cx - 250), min(img_w, cx + 250)
-    zy1, zy2 = max(0, cy - 250), min(img_h, cy + 250)
-    zoomed_location = marked_img[zy1:zy2, zx1:zx2]
     cv2.imwrite(os.path.join(debug_dir, "15b_step8c_zoomed_location_context.jpg"), zoomed_location)
 
     # Build 4x4 Annotated Visual Debug Panel

@@ -19,6 +19,7 @@ OUTPUT_ROOTS = [
 ]
 
 STEP_DESCRIPTIONS = {
+    "00_step0_bounding_box_location.jpg": ("Step 0: Initial Candidate BBox", "Whole-slide / neighborhood context highlighting the exact bounding box ROI being extracted.", "Target ROI: (x1, y1) - (x2, y2)"),
     "01_step1_raw_rgb_roi.jpg": ("Step 1: Raw RGB ROI", "Original raw microscopy tissue crop around cell body and branching arborization.", "I_RGB(x, y)"),
     "02_step1_cyan_signal.jpg": ("Step 1: Cyan Signal", "Differential color signal isolating hand-drawn annotations & cell boundaries.", "clip((B + G)/2 - R, 0, 255)"),
     "03_step2_bilateral_denoised.jpg": ("Step 2: Bilateral Denoising", "Edge-preserving spatial smoothing reducing pixel noise while keeping boundaries crisp.", "BilateralFilter(d=5, sigma=35)"),

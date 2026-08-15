@@ -18,6 +18,7 @@ OUTPUT_ROOTS = [
 ]
 
 STEP_DESCRIPTIONS = {
+    "00_step0_bounding_box_location.jpg": ("Step 0: Initial Candidate BBox", "Whole-slide / neighborhood context highlighting the exact bounding box ROI being extracted.", "Target ROI: (x1, y1) - (x2, y2)"),
     "01_step1_raw_rgb_roi.jpg": ("Step 1: Raw RGB ROI", "Original raw microscopy tissue crop around the cell body.", "I_RGB(x, y)"),
     "02_step1_contrast_map.jpg": ("Step 1: Contrast CLAHE Map", "Multi-tile local adaptive CLAHE contrast mapping over cyan/grayscale signal.", "CLAHE(I, clipLimit=3.5, tileGrid=(8,8))"),
     "03_step2_contrast_sharpened.jpg": ("Step 2: Contrast Sharpened", "Unsharp masking contrast boosting.", "1.8 * CLAHE - 0.8 * GaussBlur(5x5, 1.0)"),
