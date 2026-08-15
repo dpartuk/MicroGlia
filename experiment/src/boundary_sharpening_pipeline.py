@@ -311,10 +311,11 @@ def extract_cells_with_boundary_sharpening(
                 dist_y = max(0, max(cy1, cy2) - min(cy1 + ch1, cy2 + ch2))
                 if inter_area >= 0.05 * box1_area or (dist_x <= 12 and dist_y <= 12):
                     is_dup_or_leg = True
-                    combined_pts = np.vstack((cc2, cc1))
-                    combined_hull = cv2.convexHull(combined_pts)
-                    cbx, cby, cbw, cbh = cv2.boundingRect(combined_hull)
-                    non_composite[j] = (cbx, cby, cbw, cbh, cv2.contourArea(combined_hull), combined_hull)
+                    contour_list = cc2 if isinstance(cc2, list) else [cc2]
+                    contour_list.extend(cc1 if isinstance(cc1, list) else [cc1])
+                    combined_pts = np.vstack(contour_list)
+                    cbx, cby, cbw, cbh = cv2.boundingRect(combined_pts)
+                    non_composite[j] = (cbx, cby, cbw, cbh, ca1 + ca2, contour_list)
                     break
 
         if not is_dup_or_leg:
@@ -327,7 +328,10 @@ def extract_cells_with_boundary_sharpening(
 
     for (cx1, cy1, cw1, ch1, ca1, cc1) in subcell_tuples:
         mask_sub = np.zeros((img_h, img_w), dtype=np.uint8)
-        cv2.drawContours(mask_sub, [cc1], -1, 255, cv2.FILLED)
+        if isinstance(cc1, list):
+            cv2.drawContours(mask_sub, cc1, -1, 255, cv2.FILLED)
+        else:
+            cv2.drawContours(mask_sub, [cc1], -1, 255, cv2.FILLED)
 
         crop_sub = img[cy1:cy1+ch1, cx1:cx1+cw1]
         crop_mask = mask_sub[cy1:cy1+ch1, cx1:cx1+cw1]
@@ -370,10 +374,12 @@ def extract_cells_with_boundary_sharpening(
         x2 = min(img_w, x + w + subcell_padding)
         y2 = min(img_h, y + h + subcell_padding)
 
-        # Full Arborization Mask: uses Convex Hull to ensure all branches are preserved
+        # Exact Concave Contour Polygon Mask (100% tight fit, zero exterior gray pixels)
         cell_mask_full = np.zeros((img_h, img_w), dtype=np.uint8)
-        hull_c = cv2.convexHull(contour)
-        cv2.drawContours(cell_mask_full, [hull_c], -1, 255, cv2.FILLED)
+        if isinstance(contour, list):
+            cv2.drawContours(cell_mask_full, contour, -1, 255, cv2.FILLED)
+        else:
+            cv2.drawContours(cell_mask_full, [contour], -1, 255, cv2.FILLED)
 
         # A: Crop from Original RGB Image
         crop_img = img[y1:y2, x1:x2]
