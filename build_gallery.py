@@ -47,11 +47,15 @@ def discover_datasets(output_root):
 def load_manifest_rows(manifest_path):
     """Read manifest.csv into row dictionary shape for gallery JS."""
     rows = []
+    dataset_dir = os.path.dirname(manifest_path)
     with open(manifest_path, newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
+            cid = int(row["cell_id"])
+            debug_path = os.path.join(dataset_dir, "debug", f"cell_{cid:03d}", "16_debug_step_by_step_panel.jpg")
+            has_debug = os.path.exists(debug_path)
             rows.append({
-                "cell_id": int(row["cell_id"]),
+                "cell_id": cid,
                 "x1": int(row["x1"]),
                 "y1": int(row["y1"]),
                 "x2": int(row["x2"]),
@@ -62,7 +66,9 @@ def load_manifest_rows(manifest_path):
                 "original_filename": row["original_filename"],
                 "sharpened_filename": row["sharpened_filename"],
                 "location_filename": row["location_filename"],
-                "flagged": row.get("flagged_possible_merge", "false").strip().lower() == "true"
+                "flagged": row.get("flagged_possible_merge", "false").strip().lower() == "true",
+                "has_debug": has_debug,
+                "debug_panel": f"debug/cell_{cid:03d}/16_debug_step_by_step_panel.jpg" if has_debug else None
             })
     rows.sort(key=lambda r: r["cell_id"])
     return rows
@@ -454,6 +460,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <button id="modeOrig" class="active-mode" title="View Original RGB Crop (Key 1)">RGB Crop</button>
       <button id="modeSharp" title="View Sharpened Silhouette Mask (Key 2)">Sharpened Mask</button>
       <button id="modeDual" title="View Both Side-by-Side (Key 3)">Dual View</button>
+      <button id="modeDebug" style="display:none; border-color:#00e5ff; color:#00e5ff;" title="View 16-Step Debug Flowchart (Key 4)">🔍 Debug Flowchart</button>
     </div>
 
     <span id="flagBadge" class="flag-badge hidden">FLAGGED: possible merged cluster</span>
@@ -513,7 +520,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <footer class="thumbs-wrap">
   <div class="thumbs-header">
     <h2>Sub-Cell Index Strip (click to jump)</h2>
-    <span class="thumbs-hint">Keys: &larr;/&rarr; step cell | 1=RGB, 2=Sharpened, 3=Dual | &uarr;/&darr; switch slide</span>
+    <span class="thumbs-hint">Keys: &larr;/&rarr; step cell | 1=RGB, 2=Sharpened, 3=Dual, 4=Debug | &uarr;/&darr; switch slide</span>
   </div>
   <div class="thumbs" id="thumbs"></div>
 </footer>
@@ -524,7 +531,7 @@ const DATASET_NAMES = Object.keys(DATASETS);
 
 let currentDataset = DATASET_NAMES[0] || "";
 let currentIndex = 0;
-let cropViewMode = "orig"; // "orig" | "sharp" | "dual"
+let cropViewMode = "orig"; // "orig" | "sharp" | "dual" | "debug"
 
 const cellImg = document.getElementById('cellImg');
 const dualOrigImg = document.getElementById('dualOrigImg');
@@ -553,6 +560,7 @@ const datasetSelect = document.getElementById('datasetSelect');
 const modeOrigBtn = document.getElementById('modeOrig');
 const modeSharpBtn = document.getElementById('modeSharp');
 const modeDualBtn = document.getElementById('modeDual');
+const modeDebugBtn = document.getElementById('modeDebug');
 
 function currentCells() {{
   return DATASETS[currentDataset] || [];
@@ -563,12 +571,18 @@ function setViewMode(mode) {{
   modeOrigBtn.classList.toggle('active-mode', mode === 'orig');
   modeSharpBtn.classList.toggle('active-mode', mode === 'sharp');
   modeDualBtn.classList.toggle('active-mode', mode === 'dual');
+  modeDebugBtn.classList.toggle('active-mode', mode === 'debug');
 
   if (mode === 'dual') {{
     singleCropBox.style.display = 'none';
     dualCropBox.style.display = 'flex';
     cellPanel.classList.add('dual-active');
     cropPanelTitle.textContent = 'Dual Cell Crops (RGB + Sharpened)';
+  }} else if (mode === 'debug') {{
+    singleCropBox.style.display = 'block';
+    dualCropBox.style.display = 'none';
+    cellPanel.classList.add('dual-active');
+    cropPanelTitle.textContent = '16-Step Debug Flowchart Trace';
   }} else {{
     singleCropBox.style.display = 'block';
     dualCropBox.style.display = 'none';
@@ -587,6 +601,14 @@ function render() {{
   const origPath = prefix + c.original_filename;
   const sharpPath = prefix + c.sharpened_filename;
   const locPath = prefix + c.location_filename;
+  const debugPath = c.debug_panel ? (prefix + c.debug_panel) : null;
+
+  if (c.has_debug) {{
+    modeDebugBtn.style.display = 'inline-block';
+  }} else {{
+    modeDebugBtn.style.display = 'none';
+    if (cropViewMode === 'debug') setViewMode('orig');
+  }}
 
   if (cropViewMode === 'orig') {{
     cellImg.src = origPath;
@@ -594,6 +616,9 @@ function render() {{
   }} else if (cropViewMode === 'sharp') {{
     cellImg.src = sharpPath;
     cellFile.textContent = c.sharpened_filename;
+  }} else if (cropViewMode === 'debug' && debugPath) {{
+    cellImg.src = debugPath;
+    cellFile.textContent = c.debug_panel;
   }} else {{
     dualOrigImg.src = origPath;
     dualSharpImg.src = sharpPath;
@@ -689,6 +714,7 @@ document.getElementById('nextBtn').addEventListener('click', () => goTo(currentI
 modeOrigBtn.addEventListener('click', () => setViewMode('orig'));
 modeSharpBtn.addEventListener('click', () => setViewMode('sharp'));
 modeDualBtn.addEventListener('click', () => setViewMode('dual'));
+modeDebugBtn.addEventListener('click', () => setViewMode('debug'));
 
 document.addEventListener('keydown', (e) => {{
   if (e.key === 'ArrowLeft') {{ goTo(currentIndex - 1); }}
@@ -696,6 +722,7 @@ document.addEventListener('keydown', (e) => {{
   else if (e.key === '1') {{ setViewMode('orig'); }}
   else if (e.key === '2') {{ setViewMode('sharp'); }}
   else if (e.key === '3') {{ setViewMode('dual'); }}
+  else if (e.key === '4') {{ setViewMode('debug'); }}
   else if (e.key === 'ArrowUp') {{
     const curIdx = DATASET_NAMES.indexOf(currentDataset);
     if (curIdx > 0) selectDataset(DATASET_NAMES[curIdx - 1]);

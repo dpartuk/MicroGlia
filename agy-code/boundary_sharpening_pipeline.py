@@ -1,32 +1,179 @@
 import os
 import glob
+import json
+import csv
 import cv2
 import numpy as np
+
+def save_single_cell_debug_trace(
+    debug_dir,
+    cell_idx,
+    img,
+    signal,
+    bilateral,
+    sobel_edges,
+    canny_edges,
+    gradient_fusion,
+    clahe_boosted,
+    sharp_fine,
+    ultra_sharpened,
+    bin_mask,
+    closed_mask,
+    cell_mask_full,
+    extracted_orig,
+    extracted_sharp,
+    marked_img,
+    bbox_tuple,
+    area,
+    otsu_val,
+    calibrated_thresh
+):
+    """
+    Saves a comprehensive step-by-step debug breakdown for a specific cell ID.
+    Every intermediate step is saved with explicit naming tying directly to the code steps.
+    Also produces an annotated 4x4 visual collage flowchart panel and JSON metadata.
+    """
+    os.makedirs(debug_dir, exist_ok=True)
+    x1, y1, x2, y2 = bbox_tuple
+    img_h, img_w = img.shape[:2]
+
+    # Helper function to crop ROI and convert to BGR for saving/display
+    def crop_bgr(arr):
+        crop = arr[y1:y2, x1:x2]
+        if len(crop.shape) == 2:
+            return cv2.cvtColor(crop, cv2.COLOR_GRAY2BGR)
+        return crop
+
+    # Individual step outputs tied to code steps:
+    step_images = {
+        "01_step1_raw_rgb_roi.jpg": crop_bgr(img),
+        "02_step1_cyan_signal.jpg": crop_bgr(signal),
+        "03_step2_bilateral_denoised.jpg": crop_bgr(bilateral),
+        "04_step3a_scharr_gradient.jpg": crop_bgr(sobel_edges),
+        "05_step3b_canny_edges.jpg": crop_bgr(canny_edges),
+        "06_step3c_gradient_fusion.jpg": crop_bgr(gradient_fusion),
+        "07_step4_clahe_boosted.jpg": crop_bgr(clahe_boosted),
+        "08_step5a_fine_unsharp.jpg": crop_bgr(sharp_fine),
+        "09_step5b_ultra_sharpened.jpg": crop_bgr(ultra_sharpened),
+        "10_step6a_otsu_binary_mask.jpg": crop_bgr(bin_mask),
+        "11_step6b_morphology_closed.jpg": crop_bgr(closed_mask),
+        "12_step7_cell_contour_mask.jpg": crop_bgr(cell_mask_full),
+        "13_step8a_final_original_extracted.jpg": extracted_orig,
+        "14_step8b_final_sharpened_extracted.jpg": extracted_sharp,
+        "15_step8c_slide_location_marked.jpg": marked_img
+    }
+
+    # Save each step file
+    for fname, img_data in step_images.items():
+        cv2.imwrite(os.path.join(debug_dir, fname), img_data)
+
+    # Zoomed Context Crop around the cell (500x500 window centered on cell)
+    cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+    zx1, zx2 = max(0, cx - 250), min(img_w, cx + 250)
+    zy1, zy2 = max(0, cy - 250), min(img_h, cy + 250)
+    zoomed_location = marked_img[zy1:zy2, zx1:zx2]
+    cv2.imwrite(os.path.join(debug_dir, "15b_step8c_zoomed_location_context.jpg"), zoomed_location)
+
+    # Build 4x4 Annotated Visual Debug Panel
+    panel_items = [
+        ("1. Raw RGB Crop", step_images["01_step1_raw_rgb_roi.jpg"]),
+        ("2. Cyan/Gray Signal", step_images["02_step1_cyan_signal.jpg"]),
+        ("3. Bilateral Denoised", step_images["03_step2_bilateral_denoised.jpg"]),
+        ("4. Scharr Gradient", step_images["04_step3a_scharr_gradient.jpg"]),
+        ("5. Canny Edges", step_images["05_step3b_canny_edges.jpg"]),
+        ("6. Gradient Fusion", step_images["06_step3c_gradient_fusion.jpg"]),
+        ("7. CLAHE Contrast Boost", step_images["07_step4_clahe_boosted.jpg"]),
+        ("8. Fine Unsharp Mask", step_images["08_step5a_fine_unsharp.jpg"]),
+        ("9. Ultra-Sharpened Map", step_images["09_step5b_ultra_sharpened.jpg"]),
+        ("10. Otsu Binary Mask", step_images["10_step6a_otsu_binary_mask.jpg"]),
+        ("11. Morphology Closed", step_images["11_step6b_morphology_closed.jpg"]),
+        ("12. Cell Contour Mask", step_images["12_step7_cell_contour_mask.jpg"]),
+        ("13. Final RGB Extracted", step_images["13_step8a_final_original_extracted.jpg"]),
+        ("14. Final Sharpened Mask", step_images["14_step8b_final_sharpened_extracted.jpg"]),
+        ("15. Zoomed Slide Context", zoomed_location),
+        ("16. Whole Slide Marked", cv2.resize(marked_img, (300, 300)))
+    ]
+
+    tile_size = 280
+    panel = np.zeros((tile_size * 4 + 40, tile_size * 4, 3), dtype=np.uint8) + 20
+
+    for idx, (title, item_img) in enumerate(panel_items):
+        row = idx // 4
+        col = idx % 4
+        px1 = col * tile_size
+        py1 = row * tile_size + 30
+
+        # Resize image maintaining aspect ratio within tile
+        ih, iw = item_img.shape[:2]
+        scale = min((tile_size - 10) / iw, (tile_size - 35) / ih)
+        rw, rh = max(1, int(iw * scale)), max(1, int(ih * scale))
+        resized = cv2.resize(item_img, (rw, rh))
+
+        # Position inside tile
+        ox = px1 + (tile_size - rw) // 2
+        oy = py1 + 25 + (tile_size - 35 - rh) // 2
+        panel[oy:oy+rh, ox:ox+rw] = resized
+
+        # Tile outline & Header
+        cv2.rectangle(panel, (px1 + 2, py1 + 2), (px1 + tile_size - 2, py1 + tile_size - 2), (60, 60, 60), 1)
+        cv2.putText(panel, title, (px1 + 8, py1 + 18), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 229, 255), 1, cv2.LINE_AA)
+
+    # Master Header
+    header_text = f"STEP-BY-STEP DEBUG TRACE: Subcell #{cell_idx:03d} | BBox: ({x1},{y1})-({x2},{y2}) | Area: {int(area)} px2 | Otsu: {int(otsu_val)} (Calib: {calibrated_thresh})"
+    cv2.putText(panel, header_text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.50, (255, 255, 255), 1, cv2.LINE_AA)
+
+    cv2.imwrite(os.path.join(debug_dir, "16_debug_step_by_step_panel.jpg"), panel)
+
+    # Save JSON Metadata summary
+    meta = {
+        "cell_id": cell_idx,
+        "bbox": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
+        "width": x2 - x1,
+        "height": y2 - y1,
+        "area": int(area),
+        "otsu_threshold": int(otsu_val),
+        "calibrated_threshold": int(calibrated_thresh),
+        "flagged_possible_merge": bool(area > 3500),
+        "step_files": list(step_images.keys())
+    }
+    with open(os.path.join(debug_dir, "cell_debug_summary.json"), "w") as f:
+        json.dump(meta, f, indent=2)
+
+    print(f"    [DEBUG] Saved step-by-step debug outputs for Cell #{cell_idx:03d} -> {debug_dir}")
+
 
 def extract_cells_with_boundary_sharpening(
     image_path,
     output_dir,
     subcell_padding=5,
     clahe_clip_limit=3.5,
-    clahe_tile_grid=(8, 8)
+    clahe_tile_grid=(8, 8),
+    debug_cell_ids=None
 ):
     """
-    New Option: "Boundary Sharpening" Cell Extraction Core Pipeline
-    Combines Option 4 Boundary Sharpening with Multi-Tile Adaptive CLAHE Dark Quadrant Recovery
-    and Deduplicated Non-Composite Filtering to preserve giant single cells.
+    New Option: "Boundary Sharpening" Cell Extraction Core Pipeline with Per-Cell Debugging.
+    Combines Option 4 Boundary Sharpening with Multi-Tile Adaptive CLAHE Dark Quadrant Recovery,
+    Deduplicated Non-Composite Filtering, and Per-Cell Step-by-Step Debug Tracing.
     """
     if not os.path.exists(image_path):
         raise FileNotFoundError(f"Input image not found: {image_path}")
 
     os.makedirs(output_dir, exist_ok=True)
 
-    # Clean existing output files in output_dir
-    for old_file in glob.glob(os.path.join(output_dir, "*")):
-        try:
-            if os.path.isfile(old_file):
-                os.remove(old_file)
-        except OSError:
-            pass
+    # Normalize debug_cell_ids to a set of integers or "all"
+    target_debug_ids = set()
+    if debug_cell_ids is not None:
+        if isinstance(debug_cell_ids, (int, str)) and str(debug_cell_ids).lower() == "all":
+            target_debug_ids = "all"
+        elif isinstance(debug_cell_ids, int):
+            target_debug_ids = {debug_cell_ids}
+        elif isinstance(debug_cell_ids, (list, tuple, set)):
+            target_debug_ids = {int(x) for x in debug_cell_ids}
+
+    # Clean existing non-debug output files in output_dir
+    for old_file in glob.glob(os.path.join(output_dir, "subcell_*.jpg")):
+        try: os.remove(old_file)
+        except OSError: pass
 
     img = cv2.imread(image_path)
     if img is None:
@@ -114,7 +261,6 @@ def extract_cells_with_boundary_sharpening(
             if inter_area >= 0.80 * box2_area and ca1 > ca2 and ca2 >= 200:
                 contained_raw.append((j, cx2, cy2, cw2, ch2, ca2))
 
-        # Deduplicate contained sub-cells if they heavily overlap each other
         unique_contained = []
         for item in contained_raw:
             j, x2, y2, w2, h2, a2 = item
@@ -205,7 +351,7 @@ def extract_cells_with_boundary_sharpening(
     # Sort left-to-right, top-to-bottom
     final_subcells = sorted(final_subcells, key=lambda s: (s[1], s[0]))
 
-    # STEP 8: DUAL CROP & DUAL OVERVIEW OUTPUT ARCHITECTURE
+    # STEP 8: DUAL CROP, OVERVIEWS, MANIFEST & PER-CELL DEBUG OUTPUTS
     overview_original = img.copy()
     sharpened_bgr = cv2.cvtColor(ultra_sharpened, cv2.COLOR_GRAY2BGR)
     overview_sharpened = sharpened_bgr.copy()
@@ -262,7 +408,7 @@ def extract_cells_with_boundary_sharpening(
         cv2.putText(overview_sharpened, str(idx), (x1, max(14, y1 - 4)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 1)
 
-        flagged = (area > 3500)
+        flagged = bool(area > 3500)
         manifest_rows.append({
             "cell_id": idx,
             "x1": x1, "y1": y1, "x2": x2, "y2": y2,
@@ -274,12 +420,38 @@ def extract_cells_with_boundary_sharpening(
             "flagged_possible_merge": flagged
         })
 
+        # PER-CELL DEBUG OUTPUTS
+        if target_debug_ids == "all" or idx in target_debug_ids:
+            cell_debug_dir = os.path.join(output_dir, "debug", f"cell_{idx:03d}")
+            save_single_cell_debug_trace(
+                debug_dir=cell_debug_dir,
+                cell_idx=idx,
+                img=img,
+                signal=signal,
+                bilateral=bilateral,
+                sobel_edges=sobel_edges,
+                canny_edges=canny_edges,
+                gradient_fusion=gradient_fusion,
+                clahe_boosted=clahe_boosted,
+                sharp_fine=sharp_fine,
+                ultra_sharpened=ultra_sharpened,
+                bin_mask=bin_mask,
+                closed_mask=closed_mask,
+                cell_mask_full=cell_mask_full,
+                extracted_orig=extracted_orig,
+                extracted_sharp=extracted_sharp,
+                marked_img=marked_img,
+                bbox_tuple=(x1, y1, x2, y2),
+                area=area,
+                otsu_val=otsu_val,
+                calibrated_thresh=calibrated_thresh
+            )
+
     cv2.imwrite(os.path.join(output_dir, "overview_map_on_original.jpg"), overview_original)
     cv2.imwrite(os.path.join(output_dir, "overview_map_on_sharpened.jpg"), overview_sharpened)
 
     # STEP 9: SAVE MANIFEST CSV
     manifest_path = os.path.join(output_dir, "manifest.csv")
-    import csv
     with open(manifest_path, "w", newline="") as f:
         fieldnames = [
             "cell_id", "x1", "y1", "x2", "y2", "width", "height", "area",
@@ -291,88 +463,3 @@ def extract_cells_with_boundary_sharpening(
         writer.writerows(manifest_rows)
 
     return len(final_subcells)
-
-def generate_local_html_gallery(output_dir):
-    """
-    Generates a responsive Safari/Chrome web gallery for the extracted cells.
-    """
-    jpg_files = sorted(glob.glob(os.path.join(output_dir, "subcell_*.jpg")))
-    if not jpg_files: return
-
-    rel_files = [os.path.basename(f) for f in jpg_files]
-
-    html_content = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Boundary Sharpening Gallery - {os.path.basename(output_dir)}</title>
-    <style>
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #121212;
-            color: #e0e0e0;
-            margin: 0;
-            padding: 20px;
-        }}
-        h1 {{
-            font-size: 22px;
-            margin-bottom: 5px;
-            color: #00e5ff;
-        }}
-        p {{
-            color: #888;
-            font-size: 14px;
-            margin-top: 0;
-            margin-bottom: 20px;
-        }}
-        .grid {{
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 15px;
-        }}
-        .card {{
-            background: #1e1e1e;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 10px;
-            text-align: center;
-            transition: transform 0.15s ease, border-color 0.15s ease;
-        }}
-        .card:hover {{
-            transform: translateY(-3px);
-            border-color: #00e5ff;
-            box-shadow: 0 4px 15px rgba(0, 229, 255, 0.2);
-        }}
-        .card img {{
-            max-width: 100%;
-            max-height: 140px;
-            object-fit: contain;
-            background: #ffffff;
-            border-radius: 4px;
-        }}
-        .card .title {{
-            margin-top: 8px;
-            font-size: 11px;
-            word-break: break-all;
-            color: #ccc;
-            font-weight: 500;
-        }}
-    </style>
-</head>
-<body>
-    <h1>MicroGlia Boundary Sharpening Extracted Cells</h1>
-    <p>Directory: <code>{output_dir}</code> | Total Sub-Cell Crops: {len(rel_files)}</p>
-    <div class="grid">
-"""
-    for fname in rel_files:
-        html_content += f"""        <div class="card">
-            <img src="{fname}" alt="{fname}" loading="lazy">
-            <div class="title">{fname}</div>
-        </div>
-"""
-    html_content += """    </div>
-</body>
-</html>
-"""
-    with open(os.path.join(output_dir, "view_extracted_cells.html"), "w") as f:
-        f.write(html_content)
