@@ -17,8 +17,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 SHARPENED_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 
 OUTPUT_ROOTS = [
-    os.path.join(SHARPENED_ROOT, "output"),
-    os.path.join(PROJECT_ROOT, "Data", "boundary-sharpening-output")
+    os.path.join(SHARPENED_ROOT, "output")
 ]
 
 def discover_datasets(output_root):

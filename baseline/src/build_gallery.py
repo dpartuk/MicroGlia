@@ -15,8 +15,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 BASELINE_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 
 OUTPUT_ROOTS = [
-    os.path.join(BASELINE_ROOT, "output"),
-    os.path.join(PROJECT_ROOT, "Data", "baseline-output")
+    os.path.join(BASELINE_ROOT, "output")
 ]
 
 def discover_datasets(output_root):
