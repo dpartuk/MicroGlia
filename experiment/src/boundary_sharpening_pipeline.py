@@ -341,25 +341,16 @@ def extract_cells_with_boundary_sharpening(
         crop_sub = img[cy1:cy1+ch1, cx1:cx1+cw1]
         crop_mask = mask_sub[cy1:cy1+ch1, cx1:cx1+cw1]
 
-        non_white = (crop_mask > 0)
-
-        if len(img.shape) == 3 and not (np.array_equal(img[:,:,0], img[:,:,1]) and np.array_equal(img[:,:,1], img[:,:,2])):
-            b_c, g_c, r_c = cv2.split(crop_sub.astype(np.float32))
-            crop_cyan_diff = np.clip((b_c + g_c) / 2.0 - r_c, 0, 255)
+        if np.max(cyan_diff) > 0:
+            crop_hsv = cv2.cvtColor(crop_sub, cv2.COLOR_BGR2HSV)
+            crop_cyan = cv2.inRange(crop_hsv, lower_cyan, upper_cyan)
+            non_white = np.any(crop_sub < 240, axis=2) & (crop_mask > 0)
+            interior = non_white & (crop_cyan == 0)
             crop_gray = cv2.cvtColor(crop_sub, cv2.COLOR_BGR2GRAY)
-            # True neutral cytoplasmic soma pixels (non-cyan and dark gray < 170)
-            soma_pixels = non_white & (crop_cyan_diff < 25) & (crop_gray < 170)
-            interior_pixels = crop_gray[non_white & (crop_cyan_diff < 35)]
+            interior_pixels = crop_gray[interior] if np.any(interior) else crop_gray[non_white]
         else:
             crop_gray = cv2.cvtColor(crop_sub, cv2.COLOR_BGR2GRAY) if len(crop_sub.shape) == 3 else crop_sub
-            soma_pixels = non_white & (crop_gray < 170)
-            interior_pixels = crop_gray[non_white]
-
-        soma_count = np.count_nonzero(soma_pixels)
-
-        # Rejection Condition 0: Discard false kissing seams / marker pen intersections (< 45 true soma pixels)
-        if soma_count < 45:
-            continue
+            interior_pixels = crop_gray[crop_mask > 0]
 
         if len(interior_pixels) > 0:
             mean_val = np.mean(interior_pixels)
