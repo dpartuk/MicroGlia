@@ -193,7 +193,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MicroGlia Cell Gallery & Algorithmic Debug Inspector</title>
+<title>Boundary Sharpening | MicroGlia</title>
 <style>
   :root {{
     color-scheme: light dark;
@@ -728,8 +728,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <header class="top-band">
   <div class="titlebar">
     <div class="title-left">
-      <h1>MicroGlia Cell Gallery & Algorithmic Debug Inspector</h1>
-      <div class="subtitle" id="subtitle">&mdash; extracted cells with step-by-step deep dive</div>
+      <h1>Boundary Sharpening</h1>
+      <div class="subtitle" id="subtitle">&mdash; extracted cells with step-by-step algorithmic deep dive</div>
     </div>
     <span class="badge-method">Boundary Sharpening Pipeline (Method 2)</span>
   </div>
@@ -749,7 +749,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <button id="modeOrig" class="active-mode" title="View Original RGB Crop (Key 1)">RGB Crop</button>
       <button id="modeSharp" title="View Sharpened Silhouette Mask (Key 2)">Sharpened Mask</button>
       <button id="modeDual" title="View Both Side-by-Side (Key 3)">Dual View</button>
-      <button id="modeDebug" style="border-color: var(--debug-accent); color: var(--debug-accent);" title="Dive Into 16 Algorithmic Steps (Key 4 or D)">🔬 Step-by-Step Deep Dive</button>
+      <button id="modeDebug" style="border-color: var(--debug-accent); color: var(--debug-accent);" title="Dive Into 16 Algorithmic Steps (Key 4 or D)">🔬 Boundary Sharpening Debug</button>
     </div>
 
     <span id="flagBadge" class="flag-badge hidden">FLAGGED: possible merged cluster</span>

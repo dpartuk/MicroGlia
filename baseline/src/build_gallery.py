@@ -142,7 +142,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MicroGlia Baseline Gallery - Presaizen (2026)</title>
+<title>Baseline (Presaizen 2026) | MicroGlia</title>
 <style>
   :root {{
     color-scheme: light dark;
@@ -620,8 +620,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <header class="top-band">
   <div class="titlebar">
     <div class="title-left">
-      <h1>MicroGlia Baseline Gallery & Debug Inspector</h1>
-      <div class="subtitle" id="subtitle">&mdash; Presaizen (2026) extraction with step-by-step deep dive</div>
+      <h1>Baseline (Presaizen 2026)</h1>
+      <div class="subtitle" id="subtitle">&mdash; extraction gallery with step-by-step algorithmic deep dive</div>
     </div>
     <span class="badge-method">Baseline Method (Presaizen 2026)</span>
   </div>
@@ -639,7 +639,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
     <div class="view-group">
       <button id="modeCrop" class="active-mode" title="View Extracted Cell Crop (Key 1)">Extracted Crop</button>
-      <button id="modeDebug" style="border-color: var(--debug-accent); color: var(--debug-accent);" title="Dive Into Baseline Algorithmic Steps (Key 2 or D)">🔬 Step-by-Step Deep Dive</button>
+      <button id="modeDebug" style="border-color: var(--debug-accent); color: var(--debug-accent);" title="Dive Into Baseline Algorithmic Steps (Key 2 or D)">🔬 Baseline Debug</button>
     </div>
 
     <span id="flagBadge" class="flag-badge hidden">FLAGGED: possible merged cluster</span>

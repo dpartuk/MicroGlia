@@ -19,7 +19,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Method Comparison: Baseline (Presaizen 2026) vs. Boundary Sharpening</title>
+<title>Method Comparison | MicroGlia</title>
 <style>
   :root {{
     color-scheme: light dark;
