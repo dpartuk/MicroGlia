@@ -206,7 +206,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     --accent: #38bdf8;
     --accent-bg: rgba(56, 189, 248, 0.12);
     --debug-accent: #00e5ff;
-    --debug-bg: rgba(0, 229, 255, 0.12);
+    --debug-bg: rgba(0, 229, 255, 0.15);
     --flag-bg: #422006;
     --flag-border: #f59e0b;
     --flag-text: #fde68a;
@@ -219,7 +219,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     margin: 0;
   }}
   body {{
-    padding: 10px 14px;
+    padding: 8px 12px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
@@ -463,14 +463,82 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     image-rendering: pixelated;
   }}
 
-  /* ---------- DEBUG INSPECTOR CONTAINER ---------- */
+  /* ---------- ADVANCED DEBUG INSPECTOR CONTAINER ---------- */
   .debug-container {{
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
     min-width: 0;
-    gap: 6px;
+    gap: 5px;
+    position: relative;
+  }}
+
+  /* Large Step Control Bar (Buttons + Dropdown + Scrubber Slider) */
+  .debug-controls-bar {{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--panel-sub);
+    border: 1px solid var(--border);
+    padding: 5px 8px;
+    border-radius: 6px;
+    flex-wrap: wrap;
+    flex: 0 0 auto;
+  }}
+  .step-nav-buttons {{
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }}
+  .step-nav-btn {{
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    background: #083344;
+    border: 1px solid var(--debug-accent);
+    color: var(--debug-accent);
+    border-radius: 5px;
+  }}
+  .step-nav-btn:hover {{
+    background: var(--debug-accent);
+    color: #000;
+  }}
+  .step-nav-select {{
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 4px 8px;
+    min-width: 200px;
+    max-width: 250px;
+    border: 1px solid var(--debug-accent);
+    color: #fff;
+    background: #0f172a;
+    border-radius: 5px;
+  }}
+  .step-slider-wrap {{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 200px;
+  }}
+  .slider-label {{
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--debug-accent);
+    min-width: 65px;
+    white-space: nowrap;
+  }}
+  .step-slider {{
+    flex: 1 1 auto;
+    cursor: pointer;
+    accent-color: var(--debug-accent);
+    height: 6px;
+  }}
+  .slider-hint {{
+    font-size: 0.66rem;
+    color: var(--muted);
+    white-space: nowrap;
   }}
 
   /* Step Stepper Pill Bar */
@@ -478,9 +546,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     display: flex;
     gap: 4px;
     overflow-x: auto;
-    padding: 3px 0;
+    padding: 2px 0 4px 0;
     flex: 0 0 auto;
     border-bottom: 1px solid var(--border);
+    scrollbar-width: thin;
   }}
   .step-pill {{
     padding: 3px 8px;
@@ -503,6 +572,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     color: #000;
     font-weight: 700;
     border-color: var(--debug-accent);
+    box-shadow: 0 0 6px rgba(0, 229, 255, 0.4);
   }}
 
   /* Debug Split View */
@@ -512,6 +582,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     flex: 1 1 auto;
     min-height: 0;
     min-width: 0;
+    cursor: ns-resize;
   }}
   .debug-pane {{
     flex: 1 1 50%;
@@ -538,12 +609,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     background: var(--panel-sub);
     border: 1px solid var(--border);
     border-radius: 6px;
-    padding: 6px 10px;
+    padding: 5px 8px;
     flex: 0 0 auto;
-    font-size: 0.72rem;
+    font-size: 0.70rem;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
   }}
   .debug-info-card .info-title {{
     font-weight: 700;
@@ -555,7 +626,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .debug-info-card .info-math {{
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     color: var(--muted);
-    font-size: 0.68rem;
+    font-size: 0.66rem;
   }}
 
   .cell-panel .img-box.checker-bg {{
@@ -725,9 +796,25 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
     <!-- Mode 4: Step-by-Step Debug Inspector -->
     <div class="debug-container" id="debugContainer" style="display: none;">
+      <!-- Top Control Bar with Buttons, Dropdown, and Scrubber Slider -->
+      <div class="debug-controls-bar">
+        <div class="step-nav-buttons">
+          <button id="debugStepPrevBtn" class="step-nav-btn" title="Previous Step (Key [ or Scroll Up)">◀ Prev Step</button>
+          <select id="debugStepSelect" class="step-nav-select"></select>
+          <button id="debugStepNextBtn" class="step-nav-btn" title="Next Step (Key ] or Scroll Down)">Next Step ▶</button>
+        </div>
+        <div class="step-slider-wrap">
+          <span class="slider-label" id="sliderStepNum">Step 1 / 16</span>
+          <input type="range" id="debugStepSlider" min="0" max="15" value="0" step="1" class="step-slider" title="Drag slider to scrub through stages">
+          <span class="slider-hint">💡 Scroll mouse wheel over image to step!</span>
+        </div>
+      </div>
+
+      <!-- Step Stepper Pill Bar -->
       <div class="debug-stepper" id="debugStepper"></div>
 
-      <div class="debug-split">
+      <!-- Split Screen: Active Debug Stage vs Raw Reference -->
+      <div class="debug-split" id="debugSplit">
         <div class="debug-pane">
           <span class="pane-label" id="debugStageLabel">Active Algorithmic Stage</span>
           <div class="img-box" id="debugStageBox">
@@ -742,6 +829,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         </div>
       </div>
 
+      <!-- Description and Math HUD -->
       <div class="debug-info-card">
         <div class="info-title" id="debugInfoTitle">Step Title</div>
         <div class="info-desc" id="debugInfoDesc">Description of transformation</div>
@@ -765,7 +853,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <footer class="thumbs-wrap">
   <div class="thumbs-header">
     <h2>Sub-Cell Index Strip (click to jump)</h2>
-    <span class="thumbs-hint">Keys: &larr;/&rarr; step cell | 1=RGB, 2=Sharp, 3=Dual, 4=Debug | [/] step debug stages | &uarr;/&darr; switch slide</span>
+    <span class="thumbs-hint">Keys: &larr;/&rarr; step cell | 1=RGB, 2=Sharp, 3=Dual, 4=Debug | [/] or Scroll: step debug stages | &uarr;/&darr; switch slide</span>
   </div>
   <div class="thumbs" id="thumbs"></div>
 </footer>
@@ -796,6 +884,11 @@ const debugInfoTitle = document.getElementById('debugInfoTitle');
 const debugInfoDesc = document.getElementById('debugInfoDesc');
 const debugInfoMath = document.getElementById('debugInfoMath');
 const debugStepper = document.getElementById('debugStepper');
+const debugStepSelect = document.getElementById('debugStepSelect');
+const debugStepSlider = document.getElementById('debugStepSlider');
+const sliderStepNum = document.getElementById('sliderStepNum');
+const debugStepPrevBtn = document.getElementById('debugStepPrevBtn');
+const debugStepNextBtn = document.getElementById('debugStepNextBtn');
 
 const locationImg = document.getElementById('locationImg');
 const cellFile = document.getElementById('cellFile');
@@ -823,18 +916,32 @@ function currentCells() {{
   return DATASETS[currentDataset] || [];
 }}
 
-function buildDebugStepper() {{
+function buildDebugStepperAndSelect() {{
   debugStepper.innerHTML = '';
-  const frag = document.createDocumentFragment();
+  debugStepSelect.innerHTML = '';
+
+  const pillFrag = document.createDocumentFragment();
+  const selectFrag = document.createDocumentFragment();
+
   DEBUG_STEPS.forEach((step, idx) => {{
+    // Pill
     const pill = document.createElement('button');
     pill.className = 'step-pill' + (idx === currentDebugStepIdx ? ' active' : '');
     pill.textContent = step.id + '. ' + step.name.split(':')[1].trim();
     pill.title = step.name + ' - ' + step.desc;
     pill.addEventListener('click', () => setDebugStep(idx));
-    frag.appendChild(pill);
+    pillFrag.appendChild(pill);
+
+    // Option
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = step.id + '. ' + step.name.split(':')[1].trim();
+    selectFrag.appendChild(opt);
   }});
-  debugStepper.appendChild(frag);
+
+  debugStepper.appendChild(pillFrag);
+  debugStepSelect.appendChild(selectFrag);
+  debugStepSlider.max = DEBUG_STEPS.length - 1;
 }}
 
 function setDebugStep(idx) {{
@@ -849,6 +956,10 @@ function setDebugStep(idx) {{
       p.scrollIntoView({{ behavior: 'smooth', inline: 'center', block: 'nearest' }});
     }}
   }});
+
+  debugStepSelect.value = currentDebugStepIdx;
+  debugStepSlider.value = currentDebugStepIdx;
+  sliderStepNum.textContent = 'Step ' + (currentDebugStepIdx + 1) + ' / ' + DEBUG_STEPS.length;
 
   renderDebugStage();
 }}
@@ -1021,6 +1132,27 @@ modeSharpBtn.addEventListener('click', () => setViewMode('sharp'));
 modeDualBtn.addEventListener('click', () => setViewMode('dual'));
 modeDebugBtn.addEventListener('click', () => setViewMode('debug'));
 
+debugStepPrevBtn.addEventListener('click', () => setDebugStep(currentDebugStepIdx - 1));
+debugStepNextBtn.addEventListener('click', () => setDebugStep(currentDebugStepIdx + 1));
+debugStepSelect.addEventListener('change', (e) => setDebugStep(parseInt(e.target.value)));
+debugStepSlider.addEventListener('input', (e) => setDebugStep(parseInt(e.target.value)));
+
+// MOUSE WHEEL / TRACKPAD SCROLLING ANYWHERE ON DEBUG CONTAINER
+let lastWheelTime = 0;
+const debugSplitEl = document.getElementById('debugSplit');
+debugSplitEl.addEventListener('wheel', (e) => {{
+  if (cropViewMode !== 'debug') return;
+  e.preventDefault();
+  const now = Date.now();
+  if (now - lastWheelTime < 100) return; // throttle 100ms
+  lastWheelTime = now;
+  if (e.deltaY > 0 || e.deltaX > 0) {{
+    setDebugStep(currentDebugStepIdx + 1);
+  }} else if (e.deltaY < 0 || e.deltaX < 0) {{
+    setDebugStep(currentDebugStepIdx - 1);
+  }}
+}}, {{ passive: false }});
+
 document.addEventListener('keydown', (e) => {{
   if (e.key === 'ArrowLeft') {{ goTo(currentIndex - 1); }}
   else if (e.key === 'ArrowRight') {{ goTo(currentIndex + 1); }}
@@ -1031,16 +1163,24 @@ document.addEventListener('keydown', (e) => {{
   else if (e.key === '[' || e.key === '-') {{ if (cropViewMode === 'debug') setDebugStep(currentDebugStepIdx - 1); }}
   else if (e.key === ']' || e.key === '=' || e.key === '+') {{ if (cropViewMode === 'debug') setDebugStep(currentDebugStepIdx + 1); }}
   else if (e.key === 'ArrowUp') {{
-    const curIdx = DATASET_NAMES.indexOf(currentDataset);
-    if (curIdx > 0) selectDataset(DATASET_NAMES[curIdx - 1]);
+    if (cropViewMode === 'debug') {{
+      setDebugStep(currentDebugStepIdx - 1);
+    }} else {{
+      const curIdx = DATASET_NAMES.indexOf(currentDataset);
+      if (curIdx > 0) selectDataset(DATASET_NAMES[curIdx - 1]);
+    }}
   }} else if (e.key === 'ArrowDown') {{
-    const curIdx = DATASET_NAMES.indexOf(currentDataset);
-    if (curIdx < DATASET_NAMES.length - 1) selectDataset(DATASET_NAMES[curIdx + 1]);
+    if (cropViewMode === 'debug') {{
+      setDebugStep(currentDebugStepIdx + 1);
+    }} else {{
+      const curIdx = DATASET_NAMES.indexOf(currentDataset);
+      if (curIdx < DATASET_NAMES.length - 1) selectDataset(DATASET_NAMES[curIdx + 1]);
+    }}
   }}
 }});
 
 buildDatasetSelect();
-buildDebugStepper();
+buildDebugStepperAndSelect();
 if (currentDataset) {{
   subtitleEl.textContent = currentDataset + ' \\u2014 ' + DATASETS[currentDataset].length + ' sub-cells with whole-slide correlation';
   buildThumbs();
