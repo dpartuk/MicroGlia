@@ -353,9 +353,17 @@ def extract_cells_with_boundary_sharpening(
             interior_pixels = crop_gray[crop_mask > 0]
 
         if len(interior_pixels) > 0:
+            mean_val = np.mean(interior_pixels)
+            dark_ratio = np.count_nonzero(interior_pixels < 165) / len(interior_pixels)
             std_val = np.std(interior_pixels)
             min_val = np.min(interior_pixels)
+
+            # Rejection Condition 1: Pure synthetic white canvas
             if std_val < 10 and min_val > 220:
+                continue
+
+            # Rejection Condition 2: Empty intercellular background cavity (e.g. Cell #35)
+            if dark_ratio < 0.05 and mean_val > 185:
                 continue
 
         final_subcells.append((cx1, cy1, cw1, ch1, ca1, cc1))
