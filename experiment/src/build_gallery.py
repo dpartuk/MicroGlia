@@ -108,7 +108,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Experiment | MicroGlia</title>
+<title>Experiment</title>
 <style>
   :root {{
     color-scheme: light dark;
@@ -649,10 +649,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <header class="top-band">
   <div class="titlebar">
     <div class="title-left">
-      <h1>Experiment (Boundary Refinement)</h1>
+      <h1>Experiment</h1>
       <div class="subtitle" id="subtitle">&mdash; experimental extractions with process & bounding box refinement</div>
     </div>
-    <span class="badge-method">Experimental Method (Process & BBox Refinement)</span>
+    <span class="badge-method">Experiment</span>
   </div>
 
   <div class="toolbar">
