@@ -305,8 +305,8 @@ def extract_cells_with_boundary_sharpening(
                 is_dup_or_leg = True
                 break
 
-            # Proximity process attachment merger (Search radius: 12 px)
-            if ca1 < 250 and ca2 >= 120:
+            # Proximity process attachment merger (Search radius: 12 px, for true filopodia < 90 px)
+            if ca1 < 90 and ca2 >= 180:
                 dist_x = max(0, max(cx1, cx2) - min(cx1 + cw1, cx2 + cw2))
                 dist_y = max(0, max(cy1, cy2) - min(cy1 + ch1, cy2 + ch2))
                 if inter_area >= 0.05 * box1_area or (dist_x <= 12 and dist_y <= 12):
