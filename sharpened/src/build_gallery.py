@@ -2,10 +2,10 @@
 """
 build_gallery.py
 
-Scans sharpened/output/ (and Data/boundary-sharpening-output/) for every image dataset
-and generates a standalone, offline HTML gallery at:
+Scans sharpened/output/ for every image dataset produced by
+boundary_sharpening_pipeline.py and generates a standalone, offline HTML gallery
+with interactive Step-by-Step Algorithmic Deep Dive Debug Inspector at:
   - sharpened/output/gallery.html
-  - Data/boundary-sharpening-output/gallery.html
 """
 
 import csv
@@ -13,16 +13,128 @@ import json
 import os
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 SHARPENED_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
-
 OUTPUT_ROOTS = [
     os.path.join(SHARPENED_ROOT, "output")
 ]
 
+DEBUG_STEPS_INFO = [
+    {
+        "id": 1,
+        "key": "01_step1_raw_rgb_roi.jpg",
+        "name": "Step 1: Raw RGB ROI",
+        "desc": "Original raw microscopy tissue crop around the cell body and branching podia.",
+        "math": "I_RGB(x, y) in [0, 255]^3"
+    },
+    {
+        "id": 2,
+        "key": "02_step1_cyan_signal.jpg",
+        "name": "Step 1: Cyan Chrominance Signal",
+        "desc": "Differential color signal isolating hand-drawn annotations and cell boundaries.",
+        "math": "S(x, y) = clip((B + G)/2 - R, 0, 255)"
+    },
+    {
+        "id": 3,
+        "key": "03_step2_bilateral_denoised.jpg",
+        "name": "Step 2: Bilateral Noise Suppression",
+        "desc": "Edge-preserving spatial smoothing reducing pixel noise while keeping cell boundaries razor sharp.",
+        "math": "BilateralFilter(S, d=5, sigma_color=35, sigma_space=35)"
+    },
+    {
+        "id": 4,
+        "key": "04_step3a_scharr_gradient.jpg",
+        "name": "Step 3a: Scharr Spatial Gradient",
+        "desc": "First-order spatial derivative magnitude highlighting fine boundary transitions.",
+        "math": "G_Scharr = sqrt((dI/dx)^2 + (dI/dy)^2)"
+    },
+    {
+        "id": 5,
+        "key": "05_step3b_canny_edges.jpg",
+        "name": "Step 3b: Canny Hysteresis Edges",
+        "desc": "Double-threshold hysteresis edge tracing linking continuous thin process contours.",
+        "math": "Canny(Bilateral, 0.5 * T_high, T_high)"
+    },
+    {
+        "id": 6,
+        "key": "06_step3c_gradient_fusion.jpg",
+        "name": "Step 3c: Edge Gradient Fusion",
+        "desc": "Weighted blend combining continuous spatial gradients with sharp binary contours.",
+        "math": "Grad_Fused = 0.70 * G_Scharr + 0.30 * Canny"
+    },
+    {
+        "id": 7,
+        "key": "07_step4_clahe_boosted.jpg",
+        "name": "Step 4: Multi-Tile Adaptive CLAHE",
+        "desc": "Local contrast equalization (8x8 tile grid) recovering dark-quadrant cell structures.",
+        "math": "CLAHE(Grad_Fused, clipLimit=3.5, tileGrid=(8, 8))"
+    },
+    {
+        "id": 8,
+        "key": "08_step5a_fine_unsharp.jpg",
+        "name": "Step 5a: Fine Unsharp Masking",
+        "desc": "High-pass spatial frequency amplification boosting fine podia branch micro-edges.",
+        "math": "Sharp_Fine = 2.2 * CLAHE - 1.2 * GaussBlur(3x3, 0.8)"
+    },
+    {
+        "id": 9,
+        "key": "09_step5b_ultra_sharpened.jpg",
+        "name": "Step 5b: Ultra-Sharpened Map",
+        "desc": "Mid-scale unsharp combination producing the ultra-crisp whole-slide boundary map.",
+        "math": "Ultra_Sharp = 1.8 * Sharp_Fine - 0.8 * GaussBlur(7x7, 1.5)"
+    },
+    {
+        "id": 10,
+        "key": "10_step6a_otsu_binary_mask.jpg",
+        "name": "Step 6a: Calibrated Otsu Threshold",
+        "desc": "Region-calibrated adaptive Otsu threshold creating binary cell boundaries.",
+        "math": "T_calib = max(20, 0.65 * Otsu(Ultra_Sharp))"
+    },
+    {
+        "id": 11,
+        "key": "11_step6b_morphology_closed.jpg",
+        "name": "Step 6b: Morphological Closing",
+        "desc": "3x3 elliptical kernel closing bridging sub-pixel micro-gaps in cellular outlines.",
+        "math": "Closed = (BinMask cross B_3x3) minus B_3x3"
+    },
+    {
+        "id": 12,
+        "key": "12_step7_cell_contour_mask.jpg",
+        "name": "Step 7: Contour & Convex Hull Mask",
+        "desc": "Filtered non-composite cell mask separating individual microglial units.",
+        "math": "Contour(Area >= 80, IoMin <= 0.50, ConvexHull)"
+    },
+    {
+        "id": 13,
+        "key": "13_step8a_final_original_extracted.jpg",
+        "name": "Step 8a: Final RGB Extracted Cell",
+        "desc": "Isolated cellular unit composited onto clean white background.",
+        "math": "RGB_Crop = Mask * I_RGB + (1 - Mask) * 255"
+    },
+    {
+        "id": 14,
+        "key": "14_step8b_final_sharpened_extracted.jpg",
+        "name": "Step 8b: Final Sharpened Mask",
+        "desc": "High-contrast binary silhouette mask for morphological & topological descriptors.",
+        "math": "Mask_Sharp = Mask * Ultra_Sharp + (1 - Mask) * 255"
+    },
+    {
+        "id": 15,
+        "key": "15b_step8c_zoomed_location_context.jpg",
+        "name": "Step 8c: Zoomed Slide Context",
+        "desc": "500x500 close-up window showing the cell in its native tissue neighborhood.",
+        "math": "ROI(x1-250:x2+250, y1-250:y2+250)"
+    },
+    {
+        "id": 16,
+        "key": "16_debug_step_by_step_panel.jpg",
+        "name": "Step 16: Complete 4x4 Collage Matrix",
+        "desc": "Full diagnostic matrix compiling all 16 intermediate algorithmic stages.",
+        "math": "Collage(16 stages, 4x4 Grid, Annotated)"
+    }
+]
+
+
 def discover_datasets(output_root):
-    """Return sorted list of (dataset_name, manifest_path) for every immediate
-    subdirectory of output_root that contains a manifest.csv."""
     datasets = []
     if not os.path.isdir(output_root):
         return datasets
@@ -37,15 +149,24 @@ def discover_datasets(output_root):
 
 
 def load_manifest_rows(manifest_path):
-    """Read manifest.csv into row dictionary shape for gallery JS."""
     rows = []
     dataset_dir = os.path.dirname(manifest_path)
     with open(manifest_path, newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
             cid = int(row["cell_id"])
-            debug_path = os.path.join(dataset_dir, "debug", f"cell_{cid:03d}", "16_debug_step_by_step_panel.jpg")
-            has_debug = os.path.exists(debug_path)
+            debug_dir = os.path.join(dataset_dir, "debug", f"cell_{cid:03d}")
+            has_debug = os.path.exists(debug_dir)
+
+            meta_file = os.path.join(debug_dir, "cell_debug_summary.json")
+            debug_meta = {}
+            if os.path.exists(meta_file):
+                try:
+                    with open(meta_file) as mf:
+                        debug_meta = json.load(mf)
+                except Exception:
+                    pass
+
             rows.append({
                 "cell_id": cid,
                 "x1": int(row["x1"]),
@@ -60,7 +181,8 @@ def load_manifest_rows(manifest_path):
                 "location_filename": row["location_filename"],
                 "flagged": row.get("flagged_possible_merge", "false").strip().lower() == "true",
                 "has_debug": has_debug,
-                "debug_panel": f"debug/cell_{cid:03d}/16_debug_step_by_step_panel.jpg" if has_debug else None
+                "debug_prefix": f"debug/cell_{cid:03d}/" if has_debug else None,
+                "debug_meta": debug_meta
             })
     rows.sort(key=lambda r: r["cell_id"])
     return rows
@@ -71,18 +193,20 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MicroGlia Cell Gallery & Slide Correlation</title>
+<title>MicroGlia Cell Gallery & Algorithmic Debug Inspector</title>
 <style>
   :root {{
     color-scheme: light dark;
-    --bg: #0f1117;
-    --panel-bg: #181b22;
-    --panel-sub: #212631;
-    --border: #2e3545;
+    --bg: #0b0d13;
+    --panel-bg: #151821;
+    --panel-sub: #1e222d;
+    --border: #2b3140;
     --text: #f0f3f8;
     --muted: #8b949e;
     --accent: #38bdf8;
     --accent-bg: rgba(56, 189, 248, 0.12);
+    --debug-accent: #00e5ff;
+    --debug-bg: rgba(0, 229, 255, 0.12);
     --flag-bg: #422006;
     --flag-border: #f59e0b;
     --flag-text: #fde68a;
@@ -95,7 +219,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     margin: 0;
   }}
   body {{
-    padding: 12px 16px;
+    padding: 10px 14px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
@@ -104,14 +228,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }}
 
+  /* ---------- Top band: title, toolbar, metadata ---------- */
   .top-band {{
     flex: 0 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     overflow: hidden;
   }}
   .titlebar {{
@@ -135,7 +260,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   }}
   .subtitle {{
     color: var(--muted);
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     margin: 0;
   }}
   .badge-method {{
@@ -144,23 +269,23 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     border: 1px solid #059669;
     padding: 2px 8px;
     border-radius: 999px;
-    font-size: 0.72rem;
+    font-size: 0.70rem;
     font-weight: 600;
   }}
 
   .toolbar {{
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
     background: var(--panel-bg);
     border: 1px solid var(--border);
-    padding: 6px 12px;
+    padding: 5px 10px;
     border-radius: 8px;
   }}
   button, select {{
-    font-size: 0.82rem;
-    padding: 5px 12px;
+    font-size: 0.80rem;
+    padding: 4px 10px;
     border: 1px solid var(--border);
     border-radius: 6px;
     background: var(--panel-sub);
@@ -180,10 +305,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     font-weight: 600;
     border-color: var(--accent);
   }}
+  button#modeDebug.active-mode {{
+    background: var(--debug-accent);
+    color: #000;
+    font-weight: 700;
+    border-color: var(--debug-accent);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+  }}
 
   select#datasetSelect {{
     font-weight: 600;
-    max-width: 320px;
+    max-width: 280px;
   }}
   .dataset-picker {{
     display: flex;
@@ -191,7 +323,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     gap: 6px;
   }}
   .dataset-picker label {{
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     color: var(--muted);
   }}
   .nav-group, .view-group {{
@@ -200,32 +332,32 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   }}
   #position {{
     font-weight: 700;
-    font-size: 0.85rem;
-    min-width: 110px;
+    font-size: 0.82rem;
+    min-width: 100px;
     text-align: center;
     color: var(--text);
   }}
   .flag-badge {{
     display: inline-block;
-    padding: 2px 9px;
+    padding: 2px 8px;
     border-radius: 999px;
     background: var(--flag-bg);
     border: 1px solid var(--flag-border);
     color: var(--flag-text);
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
   }}
   .flag-badge.hidden {{ display: none; }}
 
   .meta {{
     display: flex;
-    gap: 16px;
+    gap: 14px;
     flex-wrap: wrap;
-    padding: 5px 12px;
+    padding: 4px 10px;
     background: var(--panel-bg);
     border: 1px solid var(--border);
     border-radius: 8px;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     align-items: center;
   }}
   .meta div span.label {{
@@ -237,9 +369,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     color: var(--text);
   }}
 
+  /* ---------- Middle band: main viewer ---------- */
   .viewer {{
     display: flex;
-    gap: 12px;
+    gap: 10px;
     flex-wrap: nowrap;
     flex: 1 1 auto;
     min-height: 0;
@@ -249,7 +382,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     background: var(--panel-bg);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 10px;
+    padding: 8px 10px;
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -260,10 +393,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }}
   .panel-title {{
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     font-weight: 600;
     color: var(--accent);
     text-transform: uppercase;
@@ -271,7 +404,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   }}
   .panel-file {{
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 0.70rem;
+    font-size: 0.68rem;
     color: var(--muted);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -279,8 +412,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   }}
 
   .panel.cell-panel {{ flex: 0 0 340px; max-width: 380px; }}
-  .panel.cell-panel.dual-active {{ flex: 0 0 540px; max-width: 580px; }}
-  .panel.location-panel {{ flex: 2 1 600px; }}
+  .panel.cell-panel.wide-active {{ flex: 1 1 540px; max-width: 650px; }}
+  .panel.location-panel {{ flex: 2 1 500px; }}
 
   .img-box {{
     flex: 1 1 auto;
@@ -301,9 +434,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     object-fit: contain;
   }}
 
+  /* Dual Crop Container */
   .dual-crop-box {{
     display: flex;
-    gap: 8px;
+    gap: 6px;
     flex: 1 1 auto;
     min-height: 0;
     min-width: 0;
@@ -317,16 +451,111 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     position: relative;
   }}
   .dual-sub-box .sub-label {{
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     color: var(--muted);
     text-align: center;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
   }}
   .dual-sub-box .img-box {{
     background: #ffffff;
   }}
   .dual-sub-box .img-box img {{
     image-rendering: pixelated;
+  }}
+
+  /* ---------- DEBUG INSPECTOR CONTAINER ---------- */
+  .debug-container {{
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    gap: 6px;
+  }}
+
+  /* Step Stepper Pill Bar */
+  .debug-stepper {{
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 3px 0;
+    flex: 0 0 auto;
+    border-bottom: 1px solid var(--border);
+  }}
+  .step-pill {{
+    padding: 3px 8px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    background: var(--panel-sub);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.12s ease;
+  }}
+  .step-pill:hover {{
+    color: var(--debug-accent);
+    border-color: var(--debug-accent);
+  }}
+  .step-pill.active {{
+    background: var(--debug-accent);
+    color: #000;
+    font-weight: 700;
+    border-color: var(--debug-accent);
+  }}
+
+  /* Debug Split View */
+  .debug-split {{
+    display: flex;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+  }}
+  .debug-pane {{
+    flex: 1 1 50%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+  }}
+  .debug-pane .pane-label {{
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--debug-accent);
+    margin-bottom: 2px;
+  }}
+  .debug-pane .img-box {{
+    background: #000;
+  }}
+  .debug-pane .img-box.checker-bg {{
+    background: #ffffff;
+  }}
+
+  /* Debug Info Box */
+  .debug-info-card {{
+    background: var(--panel-sub);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }}
+  .debug-info-card .info-title {{
+    font-weight: 700;
+    color: var(--debug-accent);
+  }}
+  .debug-info-card .info-desc {{
+    color: var(--text);
+  }}
+  .debug-info-card .info-math {{
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--muted);
+    font-size: 0.68rem;
   }}
 
   .cell-panel .img-box.checker-bg {{
@@ -343,45 +572,46 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     image-rendering: pixelated;
   }}
 
+  /* ---------- Bottom band: thumbnail strip ---------- */
   .thumbs-wrap {{
     flex: 0 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
     overflow: hidden;
   }}
   .thumbs-header {{
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
     flex-wrap: wrap;
   }}
   .thumbs-wrap h2 {{
-    font-size: 0.80rem;
+    font-size: 0.76rem;
     margin: 0;
     color: var(--muted);
     font-weight: 600;
   }}
   .thumbs-hint {{
     color: var(--muted);
-    font-size: 0.72rem;
+    font-size: 0.70rem;
   }}
   .thumbs {{
     display: flex;
     gap: 6px;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 6px;
+    padding: 4px;
     background: var(--panel-bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    height: 76px;
+    border-radius: 6px;
+    height: 70px;
   }}
   .thumb {{
     flex: 0 0 auto;
-    width: 60px;
-    height: 60px;
+    width: 56px;
+    height: 56px;
     border: 2px solid transparent;
     border-radius: 6px;
     cursor: pointer;
@@ -427,8 +657,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <header class="top-band">
   <div class="titlebar">
     <div class="title-left">
-      <h1>MicroGlia Cell Gallery</h1>
-      <div class="subtitle" id="subtitle">&mdash; extracted cells with whole-slide correlation</div>
+      <h1>MicroGlia Cell Gallery & Algorithmic Debug Inspector</h1>
+      <div class="subtitle" id="subtitle">&mdash; extracted cells with step-by-step deep dive</div>
     </div>
     <span class="badge-method">Boundary Sharpening Pipeline (Method 2)</span>
   </div>
@@ -448,7 +678,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <button id="modeOrig" class="active-mode" title="View Original RGB Crop (Key 1)">RGB Crop</button>
       <button id="modeSharp" title="View Sharpened Silhouette Mask (Key 2)">Sharpened Mask</button>
       <button id="modeDual" title="View Both Side-by-Side (Key 3)">Dual View</button>
-      <button id="modeDebug" style="display:none; border-color:#00e5ff; color:#00e5ff;" title="View 16-Step Debug Flowchart (Key 4)">🔍 Debug Flowchart</button>
+      <button id="modeDebug" style="border-color: var(--debug-accent); color: var(--debug-accent);" title="Dive Into 16 Algorithmic Steps (Key 4 or D)">🔬 Step-by-Step Deep Dive</button>
     </div>
 
     <span id="flagBadge" class="flag-badge hidden">FLAGGED: possible merged cluster</span>
@@ -459,21 +689,25 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <div><span class="label">BBox (x1,y1)-(x2,y2):</span><span class="val" id="metaBbox">-</span></div>
     <div><span class="label">Dimensions:</span><span class="val" id="metaDim">-</span></div>
     <div><span class="label">Area:</span><span class="val" id="metaArea">-</span> px&sup2;</div>
+    <div><span class="label">Otsu Thresh:</span><span class="val" id="metaOtsu">-</span></div>
     <div><span class="label">Flagged:</span><span class="val" id="metaFlag">-</span></div>
   </div>
 </header>
 
 <main class="viewer">
+  <!-- Left Panel: Cell Crop / Debug Inspector -->
   <div class="panel cell-panel" id="cellPanel">
     <div class="panel-header">
       <span class="panel-title" id="cropPanelTitle">Cell Crop (RGB)</span>
       <span class="panel-file" id="cellFile">-</span>
     </div>
 
+    <!-- Mode 1 & 2: Single Crop Box -->
     <div class="img-box checker-bg" id="singleCropBox">
       <img id="cellImg" src="" alt="cell crop">
     </div>
 
+    <!-- Mode 3: Dual Crop Mode -->
     <div class="dual-crop-box" id="dualCropBox" style="display: none;">
       <div class="dual-sub-box">
         <span class="sub-label">Original RGB Crop</span>
@@ -488,8 +722,35 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         </div>
       </div>
     </div>
+
+    <!-- Mode 4: Step-by-Step Debug Inspector -->
+    <div class="debug-container" id="debugContainer" style="display: none;">
+      <div class="debug-stepper" id="debugStepper"></div>
+
+      <div class="debug-split">
+        <div class="debug-pane">
+          <span class="pane-label" id="debugStageLabel">Active Algorithmic Stage</span>
+          <div class="img-box" id="debugStageBox">
+            <img id="debugStageImg" src="" alt="debug stage output">
+          </div>
+        </div>
+        <div class="debug-pane">
+          <span class="pane-label" style="color: var(--muted);">Original Raw RGB Reference</span>
+          <div class="img-box checker-bg">
+            <img id="debugRefImg" src="" alt="original reference crop">
+          </div>
+        </div>
+      </div>
+
+      <div class="debug-info-card">
+        <div class="info-title" id="debugInfoTitle">Step Title</div>
+        <div class="info-desc" id="debugInfoDesc">Description of transformation</div>
+        <div class="info-math" id="debugInfoMath">Formula</div>
+      </div>
+    </div>
   </div>
 
+  <!-- Right Panel: Whole Slide Location Correlation -->
   <div class="panel location-panel">
     <div class="panel-header">
       <span class="panel-title">Source Slide Location Correlation</span>
@@ -504,26 +765,37 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <footer class="thumbs-wrap">
   <div class="thumbs-header">
     <h2>Sub-Cell Index Strip (click to jump)</h2>
-    <span class="thumbs-hint">Keys: &larr;/&rarr; step cell | 1=RGB, 2=Sharpened, 3=Dual, 4=Debug | &uarr;/&darr; switch slide</span>
+    <span class="thumbs-hint">Keys: &larr;/&rarr; step cell | 1=RGB, 2=Sharp, 3=Dual, 4=Debug | [/] step debug stages | &uarr;/&darr; switch slide</span>
   </div>
   <div class="thumbs" id="thumbs"></div>
 </footer>
 
 <script>
 const DATASETS = {datasets_json};
+const DEBUG_STEPS = {debug_steps_json};
 const DATASET_NAMES = Object.keys(DATASETS);
 
 let currentDataset = DATASET_NAMES[0] || "";
 let currentIndex = 0;
-let cropViewMode = "orig";
+let cropViewMode = "orig"; // "orig" | "sharp" | "dual" | "debug"
+let currentDebugStepIdx = 0;
 
 const cellImg = document.getElementById('cellImg');
 const dualOrigImg = document.getElementById('dualOrigImg');
 const dualSharpImg = document.getElementById('dualSharpImg');
 const singleCropBox = document.getElementById('singleCropBox');
 const dualCropBox = document.getElementById('dualCropBox');
+const debugContainer = document.getElementById('debugContainer');
 const cellPanel = document.getElementById('cellPanel');
 const cropPanelTitle = document.getElementById('cropPanelTitle');
+
+const debugStageImg = document.getElementById('debugStageImg');
+const debugRefImg = document.getElementById('debugRefImg');
+const debugStageLabel = document.getElementById('debugStageLabel');
+const debugInfoTitle = document.getElementById('debugInfoTitle');
+const debugInfoDesc = document.getElementById('debugInfoDesc');
+const debugInfoMath = document.getElementById('debugInfoMath');
+const debugStepper = document.getElementById('debugStepper');
 
 const locationImg = document.getElementById('locationImg');
 const cellFile = document.getElementById('cellFile');
@@ -535,6 +807,7 @@ const metaId = document.getElementById('metaId');
 const metaBbox = document.getElementById('metaBbox');
 const metaDim = document.getElementById('metaDim');
 const metaArea = document.getElementById('metaArea');
+const metaOtsu = document.getElementById('metaOtsu');
 const metaFlag = document.getElementById('metaFlag');
 
 const thumbsEl = document.getElementById('thumbs');
@@ -550,6 +823,36 @@ function currentCells() {{
   return DATASETS[currentDataset] || [];
 }}
 
+function buildDebugStepper() {{
+  debugStepper.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  DEBUG_STEPS.forEach((step, idx) => {{
+    const pill = document.createElement('button');
+    pill.className = 'step-pill' + (idx === currentDebugStepIdx ? ' active' : '');
+    pill.textContent = step.id + '. ' + step.name.split(':')[1].trim();
+    pill.title = step.name + ' - ' + step.desc;
+    pill.addEventListener('click', () => setDebugStep(idx));
+    frag.appendChild(pill);
+  }});
+  debugStepper.appendChild(frag);
+}}
+
+function setDebugStep(idx) {{
+  if (idx < 0) idx = 0;
+  if (idx > DEBUG_STEPS.length - 1) idx = DEBUG_STEPS.length - 1;
+  currentDebugStepIdx = idx;
+
+  const pills = debugStepper.querySelectorAll('.step-pill');
+  pills.forEach((p, i) => {{
+    p.classList.toggle('active', i === currentDebugStepIdx);
+    if (i === currentDebugStepIdx) {{
+      p.scrollIntoView({{ behavior: 'smooth', inline: 'center', block: 'nearest' }});
+    }}
+  }});
+
+  renderDebugStage();
+}}
+
 function setViewMode(mode) {{
   cropViewMode = mode;
   modeOrigBtn.classList.toggle('active-mode', mode === 'orig');
@@ -560,20 +863,41 @@ function setViewMode(mode) {{
   if (mode === 'dual') {{
     singleCropBox.style.display = 'none';
     dualCropBox.style.display = 'flex';
-    cellPanel.classList.add('dual-active');
+    debugContainer.style.display = 'none';
+    cellPanel.className = 'panel cell-panel wide-active';
     cropPanelTitle.textContent = 'Dual Cell Crops (RGB + Sharpened)';
   }} else if (mode === 'debug') {{
-    singleCropBox.style.display = 'block';
+    singleCropBox.style.display = 'none';
     dualCropBox.style.display = 'none';
-    cellPanel.classList.add('dual-active');
-    cropPanelTitle.textContent = '16-Step Debug Flowchart Trace';
+    debugContainer.style.display = 'flex';
+    cellPanel.className = 'panel cell-panel wide-active';
+    cropPanelTitle.textContent = '🔬 Step-by-Step Algorithmic Deep Dive';
   }} else {{
     singleCropBox.style.display = 'block';
     dualCropBox.style.display = 'none';
-    cellPanel.classList.remove('dual-active');
+    debugContainer.style.display = 'none';
+    cellPanel.className = 'panel cell-panel';
     cropPanelTitle.textContent = mode === 'orig' ? 'Cell Crop (Original RGB)' : 'Cell Crop (Sharpened Silhouette)';
   }}
   render();
+}}
+
+function renderDebugStage() {{
+  const cells = currentCells();
+  if (!cells.length) return;
+  const c = cells[currentIndex];
+  const step = DEBUG_STEPS[currentDebugStepIdx];
+  const prefix = currentDataset + '/' + (c.debug_prefix || '');
+
+  debugStageImg.src = prefix + step.key;
+  debugRefImg.src = currentDataset + '/' + c.original_filename;
+
+  debugStageLabel.textContent = step.name;
+  debugInfoTitle.textContent = step.name;
+  debugInfoDesc.textContent = step.desc;
+  debugInfoMath.textContent = 'Formula / Config: ' + step.math;
+
+  cellFile.textContent = (c.debug_prefix || '') + step.key;
 }}
 
 function render() {{
@@ -585,14 +909,6 @@ function render() {{
   const origPath = prefix + c.original_filename;
   const sharpPath = prefix + c.sharpened_filename;
   const locPath = prefix + c.location_filename;
-  const debugPath = c.debug_panel ? (prefix + c.debug_panel) : null;
-
-  if (c.has_debug) {{
-    modeDebugBtn.style.display = 'inline-block';
-  }} else {{
-    modeDebugBtn.style.display = 'none';
-    if (cropViewMode === 'debug') setViewMode('orig');
-  }}
 
   if (cropViewMode === 'orig') {{
     cellImg.src = origPath;
@@ -600,13 +916,12 @@ function render() {{
   }} else if (cropViewMode === 'sharp') {{
     cellImg.src = sharpPath;
     cellFile.textContent = c.sharpened_filename;
-  }} else if (cropViewMode === 'debug' && debugPath) {{
-    cellImg.src = debugPath;
-    cellFile.textContent = c.debug_panel;
-  }} else {{
+  }} else if (cropViewMode === 'dual') {{
     dualOrigImg.src = origPath;
     dualSharpImg.src = sharpPath;
     cellFile.textContent = c.original_filename + ' | ' + c.sharpened_filename;
+  }} else if (cropViewMode === 'debug') {{
+    renderDebugStage();
   }}
 
   locationImg.src = locPath;
@@ -618,6 +933,13 @@ function render() {{
   metaBbox.textContent = '(' + c.x1 + ', ' + c.y1 + ') - (' + c.x2 + ', ' + c.y2 + ')';
   metaDim.textContent = c.width + ' x ' + c.height + ' px';
   metaArea.textContent = c.area;
+
+  if (c.debug_meta && c.debug_meta.otsu_threshold) {{
+    metaOtsu.textContent = c.debug_meta.otsu_threshold + ' (Calib: ' + c.debug_meta.calibrated_threshold + ')';
+  }} else {{
+    metaOtsu.textContent = 'Calibrated';
+  }}
+
   metaFlag.textContent = c.flagged ? 'True (Merge Cluster)' : 'False';
 
   if (c.flagged) {{
@@ -705,7 +1027,9 @@ document.addEventListener('keydown', (e) => {{
   else if (e.key === '1') {{ setViewMode('orig'); }}
   else if (e.key === '2') {{ setViewMode('sharp'); }}
   else if (e.key === '3') {{ setViewMode('dual'); }}
-  else if (e.key === '4') {{ setViewMode('debug'); }}
+  else if (e.key === '4' || e.key.toLowerCase() === 'd') {{ setViewMode('debug'); }}
+  else if (e.key === '[' || e.key === '-') {{ if (cropViewMode === 'debug') setDebugStep(currentDebugStepIdx - 1); }}
+  else if (e.key === ']' || e.key === '=' || e.key === '+') {{ if (cropViewMode === 'debug') setDebugStep(currentDebugStepIdx + 1); }}
   else if (e.key === 'ArrowUp') {{
     const curIdx = DATASET_NAMES.indexOf(currentDataset);
     if (curIdx > 0) selectDataset(DATASET_NAMES[curIdx - 1]);
@@ -716,6 +1040,7 @@ document.addEventListener('keydown', (e) => {{
 }});
 
 buildDatasetSelect();
+buildDebugStepper();
 if (currentDataset) {{
   subtitleEl.textContent = currentDataset + ' \\u2014 ' + DATASETS[currentDataset].length + ' sub-cells with whole-slide correlation';
   buildThumbs();
@@ -740,7 +1065,8 @@ def build_gallery():
             all_data[name] = load_manifest_rows(manifest_path)
 
         datasets_json = json.dumps(all_data, separators=(",", ":"))
-        html = HTML_TEMPLATE.format(datasets_json=datasets_json)
+        debug_steps_json = json.dumps(DEBUG_STEPS_INFO, separators=(",", ":"))
+        html = HTML_TEMPLATE.format(datasets_json=datasets_json, debug_steps_json=debug_steps_json)
 
         gpath = os.path.join(out_root, "gallery.html")
         with open(gpath, "w") as f:
