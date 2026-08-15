@@ -13,6 +13,7 @@ Data/edge-experiment-output/
 Data/new-approaches-output/
 Data/cyan-contour-output/
 sharpened/output/
+baseline/output/
 
 # Ignore Historical Version Snapshots
 Data/version-1/
