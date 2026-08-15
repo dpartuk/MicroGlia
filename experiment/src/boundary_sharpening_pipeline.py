@@ -1,9 +1,23 @@
-import os
-import glob
-import json
+#!/usr/bin/env python3
+"""
+boundary_sharpening_pipeline.py
+
+Experimental Core Pipeline with Multi-Scale Gap Closing, Process Attachment Merging,
+and Expanded Bounding Box Padding.
+
+Key Refinements in experiment/:
+1. Bounding Box Padding expanded to 18 px so long tapering processes never touch crop edges.
+2. Proximity-based Process Merger (radius: 12 px) merging detached filopodia into parent somas.
+3. Convex Hull Cell Masking ensuring all branching arborizations are preserved in the extracted output.
+4. Step 0 Initial Bounding Box context image for direct visual verification in debug mode.
+"""
+
 import csv
+import json
+import os
 import cv2
 import numpy as np
+
 
 def save_single_cell_debug_trace(
     debug_dir,
@@ -30,31 +44,28 @@ def save_single_cell_debug_trace(
 ):
     """
     Saves a comprehensive step-by-step debug breakdown for a specific cell ID.
-    Every intermediate step is saved with explicit naming tying directly to the code steps.
-    Also produces an annotated 4x4 visual collage flowchart panel and JSON metadata.
+    Starting with Step 0: Initial Candidate Bounding Box in Slide Context.
     """
     os.makedirs(debug_dir, exist_ok=True)
     x1, y1, x2, y2 = bbox_tuple
     img_h, img_w = img.shape[:2]
 
-    # Helper function to crop ROI and convert to BGR for saving/display
     def crop_bgr(arr):
         crop = arr[y1:y2, x1:x2]
         if len(crop.shape) == 2:
             return cv2.cvtColor(crop, cv2.COLOR_GRAY2BGR)
         return crop
 
-    # Zoomed Context Crop around the cell with highlighted bounding box (500x500 window)
+    # Step 0: Zoomed Context Crop around the cell with highlighted bounding box (500x500 window)
     cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
     zx1, zx2 = max(0, cx - 250), min(img_w, cx + 250)
     zy1, zy2 = max(0, cy - 250), min(img_h, cy + 250)
     zoomed_location = marked_img[zy1:zy2, zx1:zx2].copy()
 
-    # Draw clear crosshair/box marker on zoomed location
+    # Draw clear target candidate bounding box banner
     cv2.putText(zoomed_location, f"Target Candidate BBox: ({x1},{y1})-({x2},{y2})", (10, 24),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.50, (0, 229, 255), 1, cv2.LINE_AA)
 
-    # Individual step outputs tied to code steps (starting with Step 0: Bounding Box Location):
     step_images = {
         "00_step0_bounding_box_location.jpg": zoomed_location,
         "01_step1_raw_rgb_roi.jpg": crop_bgr(img),
@@ -74,7 +85,6 @@ def save_single_cell_debug_trace(
         "15_step8c_slide_location_marked.jpg": marked_img
     }
 
-    # Save each step file
     for fname, img_data in step_images.items():
         cv2.imwrite(os.path.join(debug_dir, fname), img_data)
 
@@ -82,6 +92,7 @@ def save_single_cell_debug_trace(
 
     # Build 4x4 Annotated Visual Debug Panel
     panel_items = [
+        ("0. BBox Context", zoomed_location),
         ("1. Raw RGB Crop", step_images["01_step1_raw_rgb_roi.jpg"]),
         ("2. Cyan/Gray Signal", step_images["02_step1_cyan_signal.jpg"]),
         ("3. Bilateral Denoised", step_images["03_step2_bilateral_denoised.jpg"]),
@@ -96,8 +107,7 @@ def save_single_cell_debug_trace(
         ("12. Cell Contour Mask", step_images["12_step7_cell_contour_mask.jpg"]),
         ("13. Final RGB Extracted", step_images["13_step8a_final_original_extracted.jpg"]),
         ("14. Final Sharpened Mask", step_images["14_step8b_final_sharpened_extracted.jpg"]),
-        ("15. Zoomed Slide Context", zoomed_location),
-        ("16. Whole Slide Marked", cv2.resize(marked_img, (300, 300)))
+        ("15. Whole Slide Marked", cv2.resize(marked_img, (300, 300)))
     ]
 
     tile_size = 280
@@ -109,84 +119,69 @@ def save_single_cell_debug_trace(
         px1 = col * tile_size
         py1 = row * tile_size + 30
 
-        # Resize image maintaining aspect ratio within tile
         ih, iw = item_img.shape[:2]
         scale = min((tile_size - 10) / iw, (tile_size - 35) / ih)
         rw, rh = max(1, int(iw * scale)), max(1, int(ih * scale))
         resized = cv2.resize(item_img, (rw, rh))
 
-        # Position inside tile
         ox = px1 + (tile_size - rw) // 2
         oy = py1 + 25 + (tile_size - 35 - rh) // 2
         panel[oy:oy+rh, ox:ox+rw] = resized
 
-        # Tile outline & Header
         cv2.rectangle(panel, (px1 + 2, py1 + 2), (px1 + tile_size - 2, py1 + tile_size - 2), (60, 60, 60), 1)
         cv2.putText(panel, title, (px1 + 8, py1 + 18), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 229, 255), 1, cv2.LINE_AA)
 
-    # Master Header
-    header_text = f"STEP-BY-STEP DEBUG TRACE: Subcell #{cell_idx:03d} | BBox: ({x1},{y1})-({x2},{y2}) | Area: {int(area)} px2 | Otsu: {int(otsu_val)} (Calib: {calibrated_thresh})"
-    cv2.putText(panel, header_text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.50, (255, 255, 255), 1, cv2.LINE_AA)
-
+    header_text = f"MICROGLIA DEBUG TRACE: Cell #{cell_idx:03d} | BBox: ({x1},{y1})-({x2},{y2}) | Area: {area} px^2"
+    cv2.putText(panel, header_text, (20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.50, (255, 255, 255), 1, cv2.LINE_AA)
     cv2.imwrite(os.path.join(debug_dir, "16_debug_step_by_step_panel.jpg"), panel)
 
-    # Save JSON Metadata summary
-    meta = {
+    summary_data = {
         "cell_id": cell_idx,
-        "bbox": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
-        "width": x2 - x1,
-        "height": y2 - y1,
-        "area": int(area),
-        "otsu_threshold": int(otsu_val),
-        "calibrated_threshold": int(calibrated_thresh),
-        "flagged_possible_merge": bool(area > 3500),
-        "step_files": list(step_images.keys())
+        "bbox": {
+            "x1": x1, "y1": y1, "x2": x2, "y2": y2,
+            "width": x2 - x1, "height": y2 - y1
+        },
+        "area_pixels": int(area),
+        "thresholds": {
+            "otsu_val": float(otsu_val),
+            "calibrated_threshold": int(calibrated_thresh)
+        },
+        "flags": {
+            "possible_merged_cluster": bool(area > 3500)
+        }
     }
-    with open(os.path.join(debug_dir, "cell_debug_summary.json"), "w") as f:
-        json.dump(meta, f, indent=2)
-
-    print(f"    [DEBUG] Saved step-by-step debug outputs for Cell #{cell_idx:03d} -> {debug_dir}")
+    with open(os.path.join(debug_dir, "cell_debug_summary.json"), "w") as jf:
+        json.dump(summary_data, jf, indent=2)
 
 
 def extract_cells_with_boundary_sharpening(
     image_path,
     output_dir,
-    subcell_padding=5,
     clahe_clip_limit=3.5,
     clahe_tile_grid=(8, 8),
-    debug_cell_ids=None
+    subcell_padding=18,
+    debug_cell_ids="all"
 ):
     """
-    New Option: "Boundary Sharpening" Cell Extraction Core Pipeline with Per-Cell Debugging.
-    Combines Option 4 Boundary Sharpening with Multi-Tile Adaptive CLAHE Dark Quadrant Recovery,
-    Deduplicated Non-Composite Filtering, and Per-Cell Step-by-Step Debug Tracing.
+    Experimental Extraction Pipeline with Process & Bounding Box Refinements.
     """
-    if not os.path.exists(image_path):
-        raise FileNotFoundError(f"Input image not found: {image_path}")
-
     os.makedirs(output_dir, exist_ok=True)
-
-    # Normalize debug_cell_ids to a set of integers or "all"
-    target_debug_ids = set()
-    if debug_cell_ids is not None:
-        if isinstance(debug_cell_ids, (int, str)) and str(debug_cell_ids).lower() == "all":
-            target_debug_ids = "all"
-        elif isinstance(debug_cell_ids, int):
-            target_debug_ids = {debug_cell_ids}
-        elif isinstance(debug_cell_ids, (list, tuple, set)):
-            target_debug_ids = {int(x) for x in debug_cell_ids}
-
-    # Clean existing non-debug output files in output_dir
-    for old_file in glob.glob(os.path.join(output_dir, "subcell_*.jpg")):
-        try: os.remove(old_file)
-        except OSError: pass
 
     img = cv2.imread(image_path)
     if img is None:
-        raise ValueError(f"Could not read image at {image_path}")
+        raise ValueError(f"Could not open or find image: {image_path}")
 
     img_h, img_w = img.shape[:2]
     total_img_area = img_h * img_w
+
+    if isinstance(debug_cell_ids, int):
+        target_debug_ids = [debug_cell_ids]
+    elif isinstance(debug_cell_ids, (list, tuple, set)):
+        target_debug_ids = list(debug_cell_ids)
+    elif str(debug_cell_ids).lower() == "all":
+        target_debug_ids = "all"
+    else:
+        target_debug_ids = []
 
     # Save original reference
     cv2.imwrite(os.path.join(output_dir, "00_original_reference.jpg"), img)
@@ -229,13 +224,14 @@ def extract_cells_with_boundary_sharpening(
 
     # STEP 6: ADAPTIVE OTSU THRESHOLDING -> CRISP BOUNDARY MAP
     otsu_val, _ = cv2.threshold(ultra_sharpened, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    calibrated_thresh = max(20, int(0.65 * otsu_val))
+    calibrated_thresh = max(18, int(0.58 * otsu_val))
 
     _, bin_mask = cv2.threshold(ultra_sharpened, calibrated_thresh, 255, cv2.THRESH_BINARY)
     # Remove outer border frame noise
     bin_mask[:, :3] = 0; bin_mask[:, -3:] = 0; bin_mask[:3, :] = 0; bin_mask[-3:, :] = 0
     cv2.imwrite(os.path.join(output_dir, "02_binary_crisp_boundaries.jpg"), bin_mask)
 
+    # Multi-Scale Morphological Gap Closing (3x3 Kernel + Edge Bridge)
     kernel_small = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     closed_mask = cv2.morphologyEx(bin_mask, cv2.MORPH_CLOSE, kernel_small, iterations=1)
 
@@ -246,8 +242,8 @@ def extract_cells_with_boundary_sharpening(
         for c in contours:
             area = cv2.contourArea(c)
             x, y, w, h = cv2.boundingRect(c)
-            # Filter noise < 80 px
-            if area >= 80 and not (area > 0.70 * total_img_area or (w > 0.85 * img_w and h > 0.85 * img_h)):
+            # Filter noise < 60 px
+            if area >= 60 and not (area > 0.70 * total_img_area or (w > 0.85 * img_w and h > 0.85 * img_h)):
                 candidates.append((x, y, w, h, area, c))
 
     # STEP 7: DEDUPLICATED NON-COMPOSITE FILTER
@@ -264,7 +260,7 @@ def extract_cells_with_boundary_sharpening(
             inter_h = max(0, inter_y2 - inter_y1)
             inter_area = inter_w * inter_h
             box2_area = cw2 * ch2
-            if inter_area >= 0.80 * box2_area and ca1 > ca2 and ca2 >= 200:
+            if inter_area >= 0.80 * box2_area and ca1 > ca2 and ca2 >= 180:
                 contained_raw.append((j, cx2, cy2, cw2, ch2, ca2))
 
         unique_contained = []
@@ -285,7 +281,7 @@ def extract_cells_with_boundary_sharpening(
         if len(unique_contained) < 2:
             non_composite.append((cx1, cy1, cw1, ch1, ca1, cc1))
 
-    # DUPLICATE SUBSET FILTER & CELL PROCESS ATTACHMENT MERGER
+    # DUPLICATE SUBSET FILTER & PROXIMITY PROCESS ATTACHMENT MERGER
     subcell_tuples = []
     merged_leg_indices = set()
 
@@ -309,10 +305,11 @@ def extract_cells_with_boundary_sharpening(
                 is_dup_or_leg = True
                 break
 
-            if ca1 < 200 and ca2 >= 250:
+            # Proximity process attachment merger (Search radius: 12 px)
+            if ca1 < 250 and ca2 >= 120:
                 dist_x = max(0, max(cx1, cx2) - min(cx1 + cw1, cx2 + cw2))
                 dist_y = max(0, max(cy1, cy2) - min(cy1 + ch1, cy2 + ch2))
-                if inter_area >= 0.08 * box1_area or (dist_x <= 3 and dist_y <= 3):
+                if inter_area >= 0.05 * box1_area or (dist_x <= 12 and dist_y <= 12):
                     is_dup_or_leg = True
                     combined_pts = np.vstack((cc2, cc1))
                     combined_hull = cv2.convexHull(combined_pts)
@@ -367,18 +364,16 @@ def extract_cells_with_boundary_sharpening(
     for idx, (x, y, w, h, area, contour) in enumerate(final_subcells, start=1):
         subcell_id = f"subcell_{idx:03d}"
 
+        # Bounding box with expanded padding
         x1 = max(0, x - subcell_padding)
         y1 = max(0, y - subcell_padding)
         x2 = min(img_w, x + w + subcell_padding)
         y2 = min(img_h, y + h + subcell_padding)
 
-        touches_border = (x <= 4 or y <= 4 or (x + w) >= img_w - 4 or (y + h) >= img_h - 4)
+        # Full Arborization Mask: uses Convex Hull to ensure all branches are preserved
         cell_mask_full = np.zeros((img_h, img_w), dtype=np.uint8)
-        if touches_border:
-            hull_c = cv2.convexHull(contour)
-            cv2.drawContours(cell_mask_full, [hull_c], -1, 255, cv2.FILLED)
-        else:
-            cv2.drawContours(cell_mask_full, [contour], -1, 255, cv2.FILLED)
+        hull_c = cv2.convexHull(contour)
+        cv2.drawContours(cell_mask_full, [hull_c], -1, 255, cv2.FILLED)
 
         # A: Crop from Original RGB Image
         crop_img = img[y1:y2, x1:x2]
