@@ -374,12 +374,24 @@ def extract_cells_with_boundary_sharpening(
         x2 = min(img_w, x + w + subcell_padding)
         y2 = min(img_h, y + h + subcell_padding)
 
-        # Exact Concave Contour Polygon Mask (100% tight fit, zero exterior gray pixels)
+        # Check if cell touches the image boundary
+        touches_border = (x <= 6 or y <= 6 or (x + w) >= img_w - 6 or (y + h) >= img_h - 6)
+
         cell_mask_full = np.zeros((img_h, img_w), dtype=np.uint8)
-        if isinstance(contour, list):
-            cv2.drawContours(cell_mask_full, contour, -1, 255, cv2.FILLED)
+        if touches_border:
+            # EXCEPTION: Border cell with open contour -> close against image edge using convex hull
+            if isinstance(contour, list):
+                pts = np.vstack(contour)
+                hull_c = cv2.convexHull(pts)
+            else:
+                hull_c = cv2.convexHull(contour)
+            cv2.drawContours(cell_mask_full, [hull_c], -1, 255, cv2.FILLED)
         else:
-            cv2.drawContours(cell_mask_full, [contour], -1, 255, cv2.FILLED)
+            # STANDARD: Interior cell -> exact concave contour polygon masking (zero exterior gray pixels)
+            if isinstance(contour, list):
+                cv2.drawContours(cell_mask_full, contour, -1, 255, cv2.FILLED)
+            else:
+                cv2.drawContours(cell_mask_full, [contour], -1, 255, cv2.FILLED)
 
         # A: Crop from Original RGB Image
         crop_img = img[y1:y2, x1:x2]
