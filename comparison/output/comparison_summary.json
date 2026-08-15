@@ -1,0 +1,53 @@
+{
+  "total_baseline_cells": 991,
+  "total_sharpened_cells": 1036,
+  "net_gain": 45,
+  "percentage_gain": 4.54,
+  "slides": [
+    {
+      "slide_name": "JPG_VID2724_B1_3_00d07h00m",
+      "baseline_count": 97,
+      "sharpened_count": 95,
+      "delta": -2,
+      "delta_str": "-2",
+      "pct_change": -2.06,
+      "comparison_image": "JPG_VID2724_B1_3_00d07h00m_comparison.jpg"
+    },
+    {
+      "slide_name": "VID2724_A1_9_00d07h00m",
+      "baseline_count": 241,
+      "sharpened_count": 261,
+      "delta": 20,
+      "delta_str": "+20",
+      "pct_change": 8.3,
+      "comparison_image": "VID2724_A1_9_00d07h00m_comparison.jpg"
+    },
+    {
+      "slide_name": "VID2724_A3_4_00d00h00m",
+      "baseline_count": 269,
+      "sharpened_count": 287,
+      "delta": 18,
+      "delta_str": "+18",
+      "pct_change": 6.69,
+      "comparison_image": "VID2724_A3_4_00d00h00m_comparison.jpg"
+    },
+    {
+      "slide_name": "VID2724_A3_4_00d07h00m",
+      "baseline_count": 282,
+      "sharpened_count": 290,
+      "delta": 8,
+      "delta_str": "+8",
+      "pct_change": 2.84,
+      "comparison_image": "VID2724_A3_4_00d07h00m_comparison.jpg"
+    },
+    {
+      "slide_name": "VID2724_B1_3_00d00h00m",
+      "baseline_count": 102,
+      "sharpened_count": 103,
+      "delta": 1,
+      "delta_str": "+1",
+      "pct_change": 0.98,
+      "comparison_image": "VID2724_B1_3_00d00h00m_comparison.jpg"
+    }
+  ]
+}
