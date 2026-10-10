@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MicroGlia Segmentation Portal | Method Galleries & Comparison</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #0b0e14;
+    --panel: #131722;
+    --panel-hover: #1a2030;
+    --border: #262c3d;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --accent: #38bdf8;
+    --green: #10b981;
+    --purple: #a855f7;
+    --orange: #f59e0b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 32px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin: 0 0 6px 0;
+    color: var(--accent);
+    letter-spacing: -0.01em;
+  }
+  p.subtitle {
+    margin: 0;
+    font-size: 0.92rem;
+    color: var(--text-muted);
+  }
+
+  /* Summary Table */
+  .summary-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .summary-box h2 {
+    font-size: 1.05rem;
+    margin: 0 0 12px 0;
+    color: #fff;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  th, td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  tr:last-child td { border-bottom: none; }
+  .best { font-weight: 700; color: var(--green); }
+
+  /* Cards Grid */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 14px;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    background: var(--panel-hover);
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0;
+    color: #fff;
+  }
+  .badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .badge-rec { background: rgba(56, 189, 248, 0.2); color: var(--accent); border: 1px solid var(--accent); }
+  .badge-comp { background: rgba(245, 158, 11, 0.2); color: var(--orange); border: 1px solid var(--orange); }
+  .badge-base { background: rgba(148, 163, 184, 0.2); color: var(--text-muted); border: 1px solid var(--border); }
+  .card-desc {
+    font-size: 0.80rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin: 0;
+  }
+  .card-metrics {
+    font-size: 0.76rem;
+    background: rgba(0,0,0,0.25);
+    padding: 8px 10px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .btn-open {
+    display: inline-block;
+    text-align: center;
+    background: var(--accent);
+    color: #0b0e14;
+    font-weight: 700;
+    font-size: 0.82rem;
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: opacity 0.15s ease;
+  }
+  .btn-open:hover { opacity: 0.9; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>MicroGlia Segmentation: Master Review Portal</h1>
+    <p class="subtitle">Interactive review galleries for microglial cell segmentation across five gigapixel microscopy slides.</p>
+  </header>
+
+  <!-- Summary Benchmark -->
+  <div class="summary-box">
+    <h2>Quantitative Method Benchmark</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Paradigm</th>
+          <th>Identified Cells</th>
+          <th>Mean Cell Area</th>
+          <th>Total Foreground</th>
+          <th>Dice vs GT</th>
+          <th>IoU vs GT</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. Side-by-Side Comparison</strong></td>
+          <td>Baseline vs Sharpened</td>
+          <td>991 vs 1,036</td>
+          <td>755 vs 698 px²</td>
+          <td>748k vs 723k px²</td>
+          <td>0.1574 vs 0.2677</td>
+          <td>0.0867 vs 0.1547</td>
+        </tr>
+        <tr>
+          <td><strong>2. DPGNet (Deep Learning)</strong></td>
+          <td>Vision Transformer PVTv2</td>
+          <td class="best">670 unified</td>
+          <td class="best">1,403 px²</td>
+          <td class="best">939,778 px²</td>
+          <td class="best">0.7785</td>
+          <td class="best">0.6380</td>
+        </tr>
+        <tr>
+          <td><strong>3. Contour & Hull Pipeline</strong></td>
+          <td>Morphological Filtering</td>
+          <td>1,071</td>
+          <td>656 px²</td>
+          <td>703,481 px²</td>
+          <td>1.0000 (Target)</td>
+          <td>1.0000 (Target)</td>
+        </tr>
+        <tr>
+          <td><strong>4. Boundary Sharpening</strong></td>
+          <td>Multi-Scale Edge Fusion</td>
+          <td>1,036</td>
+          <td>698 px²</td>
+          <td>723,320 px²</td>
+          <td>0.2677</td>
+          <td>0.1547</td>
+        </tr>
+        <tr>
+          <td><strong>5. Presaizen 2026 Baseline</strong></td>
+          <td>Color Difference</td>
+          <td>991</td>
+          <td>755 px²</td>
+          <td>748,485 px²</td>
+          <td>0.1574</td>
+          <td>0.0867</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Interactive Galleries Grid -->
+  <div class="cards-grid">
+
+    <!-- Card 1: Side by Side Comparison -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Method Comparison Gallery</h3>
+        <span class="badge badge-comp">Side-by-Side</span>
+      </div>
+      <p class="card-desc">Compare the classical baseline against the proposed boundary sharpening pipeline directly on whole-slide maps.</p>
+      <div class="card-metrics">
+        <div><strong>Slide Count:</strong> 5 Slides</div>
+        <div><strong>Features:</strong> Delta KPI ribbon, side-by-side split screen</div>
+      </div>
+      <a class="btn-open" href="comparison/output/gallery.html">Open Comparison Gallery &rarr;</a>
+    </div>
+
+    <!-- Card 2: DPGNet -->
+    <div class="card" style="border-color: var(--accent);">
+      <div class="card-header">
+        <h3 class="card-title">DPGNet Framework Gallery</h3>
+        <span class="badge badge-rec">Deep Learning (Best)</span>
+      </div>
+      <p class="card-desc">Vision Transformer PVTv2-B2 with Edge Difference Attention (EDA). Unifies complete cell bodies and outputs boundary uncertainty heatmaps.</p>
+      <div class="card-metrics">
+        <div><strong>Identified Cells:</strong> 670 unified microglial units</div>
+        <div><strong>Features:</strong> RGB crop, DPGNet mask, EDA uncertainty heatmap, slide context</div>
+      </div>
+      <a class="btn-open" href="dpgnet/output/gallery.html">Open DPGNet Gallery &rarr;</a>
+    </div>
+
+    <!-- Card 3: Contour & Hull -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Contour & Hull Gallery</h3>
+        <span class="badge badge-base">Ground Truth Target</span>
+      </div>
+      <p class="card-desc">Contour filtering and convex hull isolation. Generates the validated ground-truth binary masks used for model training.</p>
+      <div class="card-metrics">
+        <div><strong>Identified Cells:</strong> 1,071 sub-cells</div>
+        <div><strong>Features:</strong> Hull isolation, area filtering, sub-cell extraction</div>
+      </div>
+      <a class="btn-open" href="contour/output/gallery.html">Open Contour Gallery &rarr;</a>
+    </div>
+
+    <!-- Card 4: Boundary Sharpening -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Boundary Sharpening Gallery</h3>
+        <span class="badge badge-base">Classical Sharpening</span>
+      </div>
+      <p class="card-desc">Scharr gradient magnitude, Canny hysteresis, multi-tile CLAHE, and fine unsharp masking producing crisp 1-2px boundary walls.</p>
+      <div class="card-metrics">
+        <div><strong>Identified Cells:</strong> 1,036 sub-cells (+45 vs baseline)</div>
+        <div><strong>Features:</strong> Dual-crop architecture, 16-stage diagnostic panels</div>
+      </div>
+      <a class="btn-open" href="sharpened/output/gallery.html">Open Sharpened Gallery &rarr;</a>
+    </div>
+
+    <!-- Card 5: Baseline -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Baseline Pipeline Gallery</h3>
+        <span class="badge badge-base">Presaizen 2026</span>
+      </div>
+      <p class="card-desc">Classical cyan isolation differential signal with Gaussian filtering and global Otsu thresholding.</p>
+      <div class="card-metrics">
+        <div><strong>Identified Cells:</strong> 991 cells</div>
+        <div><strong>Features:</strong> Color differential extraction, morphological opening</div>
+      </div>
+      <a class="btn-open" href="baseline/output/gallery.html">Open Baseline Gallery &rarr;</a>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
