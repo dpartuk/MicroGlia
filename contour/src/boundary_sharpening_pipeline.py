@@ -2,10 +2,10 @@
 """
 boundary_sharpening_pipeline.py
 
-Experimental Core Pipeline with Multi-Scale Gap Closing, Process Attachment Merging,
+Contour Core Pipeline with Multi-Scale Gap Closing, Process Attachment Merging,
 and Expanded Bounding Box Padding.
 
-Key Refinements in experiment/:
+Key Refinements in contour/:
 1. Bounding Box Padding expanded to 18 px so long tapering processes never touch crop edges.
 2. Proximity-based Process Merger (radius: 12 px) merging detached filopodia into parent somas.
 3. Convex Hull Cell Masking ensuring all branching arborizations are preserved in the extracted output.
@@ -163,7 +163,7 @@ def extract_cells_with_boundary_sharpening(
     debug_cell_ids="all"
 ):
     """
-    Experimental Extraction Pipeline with Process & Bounding Box Refinements.
+    Contour Extraction Pipeline with Process & Bounding Box Refinements.
     """
     os.makedirs(output_dir, exist_ok=True)
 

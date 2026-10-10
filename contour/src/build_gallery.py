@@ -108,7 +108,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Experiment</title>
+<title>Contour</title>
 <style>
   :root {{
     color-scheme: light dark;
@@ -649,10 +649,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <header class="top-band">
   <div class="titlebar">
     <div class="title-left">
-      <h1>Experiment</h1>
-      <div class="subtitle" id="subtitle">&mdash; experimental extractions with process & bounding box refinement</div>
+      <h1>Contour</h1>
+      <div class="subtitle" id="subtitle">&mdash; contour extractions with process & bounding box refinement</div>
     </div>
-    <span class="badge-method">Experiment</span>
+    <span class="badge-method">Contour</span>
   </div>
 
   <div class="toolbar">
