@@ -117,7 +117,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DPGNet Review Gallery | Microglia Boundary-Aware Segmentation</title>
+<title>Method: DPGNet Vision Transformer Framework | MicroGlia</title>
 <style>
   :root {
     color-scheme: light dark;
@@ -563,7 +563,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <div class="top-band">
     <div class="titlebar">
       <div class="title-left">
-        <h1>DPGNet Review Gallery</h1>
+        <h1>Method: DPGNet Vision Transformer</h1>
         <span class="subtitle">Boundary-Aware Segmentation & Boundary Uncertainty Perception</span>
       </div>
       <div class="badges-group">
@@ -1148,11 +1148,15 @@ def build_gallery():
     datasets_json = json.dumps(datasets, indent=2)
     html_content = HTML_TEMPLATE.replace("__DATASETS_JSON__", datasets_json)
 
-    out_file = os.path.join(OUTPUT_DIR, "gallery.html")
+    out_file = os.path.join(OUTPUT_DIR, "dpgnet_gallery.html")
     with open(out_file, "w", encoding="utf-8") as f:
         f.write(html_content)
 
-    print(f"Successfully generated DPGNet review gallery: {out_file}")
+    legacy_file = os.path.join(OUTPUT_DIR, "gallery.html")
+    with open(legacy_file, "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+    print(f"Successfully generated DPGNet review gallery: {out_file} (and {legacy_file})")
 
 
 if __name__ == "__main__":

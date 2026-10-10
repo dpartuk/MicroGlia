@@ -108,7 +108,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Boundary Sharpening | MicroGlia</title>
+<title>Method: Boundary Sharpening | MicroGlia</title>
 <style>
   :root {{
     color-scheme: light dark;
@@ -649,7 +649,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <header class="top-band">
   <div class="titlebar">
     <div class="title-left">
-      <h1>Boundary Sharpening</h1>
+      <h1>Method: Boundary Sharpening</h1>
       <div class="subtitle" id="subtitle">&mdash; extracted cells with whole-slide correlation</div>
     </div>
     <span class="badge-method">Boundary Sharpening Pipeline (Method 2)</span>
@@ -1110,10 +1110,13 @@ def build_gallery():
         step_info_json = json.dumps(STEP_DESCRIPTIONS, separators=(",", ":"))
         html = HTML_TEMPLATE.format(datasets_json=datasets_json, step_info_json=step_info_json)
 
+        named_path = os.path.join(out_root, "sharpened_gallery.html")
+        with open(named_path, "w") as f:
+            f.write(html)
         gpath = os.path.join(out_root, "gallery.html")
         with open(gpath, "w") as f:
             f.write(html)
-        print(f"Wrote {gpath} with {len(all_data)} dataset(s):")
+        print(f"Wrote {named_path} and {gpath} with {len(all_data)} dataset(s):")
         for name in all_data:
             print(f"  - {name}: {len(all_data[name])} cells")
 

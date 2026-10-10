@@ -31,12 +31,12 @@ When you open `index.html`, you will see:
 ## 📊 The Five Interactive Review Galleries
 
 ### 1. Method Comparison Gallery
-* **Location**: `comparison/output/gallery.html`
+* **Location**: `comparison/output/comparison_gallery.html` (or `gallery.html`)
 * **Purpose**: Compares the classical baseline against the proposed boundary sharpening pipeline.
 * **Features**: Whole-slide side-by-side maps, cell count gain ribbon, and slide switching.
 
 ### 2. DPGNet Deep Learning Framework (Recommended)
-* **Location**: `dpgnet/output/gallery.html`
+* **Location**: `dpgnet/output/dpgnet_gallery.html` (or `gallery.html`)
 * **Purpose**: Evaluates the vision transformer network (PVTv2-B2) with Edge Difference Attention (EDA).
 * **Key Results**:
   * Segments 670 unified microglial units (mean area: 1,403 px²).
@@ -50,17 +50,17 @@ When you open `index.html`, you will see:
   4. *Slide Location Context*: Whole-slide map with cell bounding box.
 
 ### 3. Contour & Convex Hull Pipeline (Ground Truth Target)
-* **Location**: `contour/output/gallery.html`
+* **Location**: `contour/output/contour_gallery.html` (or `gallery.html`)
 * **Purpose**: Connected component filtering and convex hull isolation.
 * **Role**: Generates the validated binary masks used for training DPGNet.
 
 ### 4. Proposed Boundary Sharpening Pipeline
-* **Location**: `sharpened/output/gallery.html`
+* **Location**: `sharpened/output/sharpened_gallery.html` (or `gallery.html`)
 * **Purpose**: Fuses Scharr gradients, Canny edge detection, multi-tile CLAHE, and unsharp masking.
 * **Key Results**: Identifies 1,036 sub-cells (+45 cells vs baseline) with crisp 1-2px boundaries.
 
 ### 5. Presaizen 2026 Baseline Pipeline
-* **Location**: `baseline/output/gallery.html`
+* **Location**: `baseline/output/baseline_gallery.html` (or `gallery.html`)
 * **Purpose**: Classical color difference (`(B+G)/2 - R`) with global Otsu thresholding.
 * **Key Results**: Identifies 991 cells with standard 3-5px boundaries.
 

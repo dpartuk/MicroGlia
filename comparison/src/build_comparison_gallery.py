@@ -19,7 +19,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Method Comparison | MicroGlia</title>
+<title>Method: Side-by-Side Comparison | MicroGlia</title>
 <style>
   :root {{
     color-scheme: light dark;
@@ -210,7 +210,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
 <header class="top-band">
   <div class="titlebar">
-    <h1>MicroGlia Method Comparison</h1>
+    <h1>Method: Side-by-Side Comparison</h1>
     <div class="badges">
       <span class="badge badge-base">Baseline: Presaizen (2026)</span>
       <span class="badge badge-sharp">Proposed: Boundary Sharpening</span>
@@ -350,10 +350,13 @@ def build_gallery():
         summary_data = json.load(f)
 
     html = HTML_TEMPLATE.format(summary_json=json.dumps(summary_data, separators=(",", ":")))
+    named_path = os.path.join(OUTPUT_DIR, "comparison_gallery.html")
+    with open(named_path, "w") as f:
+        f.write(html)
     gallery_path = os.path.join(OUTPUT_DIR, "gallery.html")
     with open(gallery_path, "w") as f:
         f.write(html)
-    print(f"Wrote comparison gallery -> {gallery_path}")
+    print(f"Wrote comparison gallery -> {named_path} and {gallery_path}")
 
 if __name__ == "__main__":
     build_gallery()
