@@ -1,0 +1,5 @@
+Method,Paradigm,Parameters,Identified_Cells,Mean_Cell_Area_px2,Total_Foreground_px2,Dice_vs_GT,IoU_vs_GT,Recall_vs_GT
+Baseline,Classical Color Thresholding,0,991,755,748485,0.1574,0.0867,0.1247
+Sharpened,Multi-Scale Edge Fusion,0,1036,698,723320,0.2677,0.1547,0.2118
+Contour,Morphological Hull Target,0,1071,656,703481,1.0000,1.0000,1.0000
+DPGNet,Vision Transformer PVTv2-B2,25510000,670,1403,939778,0.7785,0.6380,0.8609

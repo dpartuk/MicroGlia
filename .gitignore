@@ -10,3 +10,4 @@ sharpened/output/
 contour/output/
 dpgnet/output/
 *.pth
+*.zip
