@@ -8,3 +8,5 @@ __pycache__/
 baseline/output/
 sharpened/output/
 contour/output/
+dpgnet/output/
+*.pth

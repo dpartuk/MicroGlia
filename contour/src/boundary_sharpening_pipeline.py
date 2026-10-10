@@ -375,6 +375,7 @@ def extract_cells_with_boundary_sharpening(
     overview_original = img.copy()
     sharpened_bgr = cv2.cvtColor(ultra_sharpened, cv2.COLOR_GRAY2BGR)
     overview_sharpened = sharpened_bgr.copy()
+    whole_slide_mask = np.zeros((img_h, img_w), dtype=np.uint8)
 
     manifest_rows = []
 
@@ -405,6 +406,8 @@ def extract_cells_with_boundary_sharpening(
                 cv2.drawContours(cell_mask_full, contour, -1, 255, cv2.FILLED)
             else:
                 cv2.drawContours(cell_mask_full, [contour], -1, 255, cv2.FILLED)
+
+        whole_slide_mask = np.maximum(whole_slide_mask, cell_mask_full)
 
         # A: Crop from Original RGB Image
         crop_img = img[y1:y2, x1:x2]
@@ -481,6 +484,7 @@ def extract_cells_with_boundary_sharpening(
 
     cv2.imwrite(os.path.join(output_dir, "overview_map_on_original.jpg"), overview_original)
     cv2.imwrite(os.path.join(output_dir, "overview_map_on_sharpened.jpg"), overview_sharpened)
+    cv2.imwrite(os.path.join(output_dir, "whole_slide_ground_truth_mask.png"), whole_slide_mask)
 
     # STEP 9: SAVE MANIFEST CSV
     manifest_path = os.path.join(output_dir, "manifest.csv")
