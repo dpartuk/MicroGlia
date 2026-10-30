@@ -11,3 +11,9 @@ contour/output/
 dpgnet/output/
 *.pth
 *.zip
+pair_contour/output/
+mask_contour/output/
+enhance/output/
+
+# Phase 2 raw image pairs (186 MB): copied separately, not stored in git
+Data/pair-data/

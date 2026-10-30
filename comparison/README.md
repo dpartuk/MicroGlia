@@ -49,3 +49,27 @@ python3 comparison/run.py
 
 ### 2. Open the Interactive Comparison Gallery
 Open [**`comparison/output/gallery.html`**](output/gallery.html) in your browser to inspect the side-by-side whole-slide maps with KPI metrics and interactive slide switching.
+
+### 3. Build the Master Gallery (one page, a tab for every gallery)
+Build each method's gallery first. Galleries that do not exist yet are left out.
+```bash
+python3 comparison/master_gallery.py
+```
+Open [**`comparison/output/master_gallery.html`**](output/master_gallery.html). Click a tab, or press Alt + 1–9, to switch galleries.
+Each tab keeps its slide and cell position when you switch away and back. Add `#baseline`, `#sharpened`, `#contour`, `#dpgnet` or `#explorer` to the URL to open a specific tab.
+
+### 4. Build the Multi-Method Explorer (all four methods, cell by cell)
+Run each method's `process.py` first. The explorer reads every available `<method>/output/<slide>/manifest.csv`.
+```bash
+python3 comparison/methods_gallery.py
+```
+Open [**`comparison/output/methods_gallery.html`**](output/methods_gallery.html) to:
+* Overlay the cell outlines of any combination of methods on each slide.
+* Select two methods (A vs B) and colour each cell of A as matched, split, merged, or only in A.
+* Click a cell to see its crop and the matching crops from every other method, with IoU.
+* Open the **Cell table** view: one row per ground-truth (Contour) cell, compared across all methods. Click a row to locate the cell on the slide.
+
+The same command writes the table to [`comparison/output/cell_by_cell_comparison.csv`](output/cell_by_cell_comparison.csv).
+Each method has four columns: `status` (`matched`, `split`, `merged`, `missed`, or `extra` for a cell that is not in the ground truth), `cell_ids`, `area`, and `iou`.
+
+The explorer references the method output folders by relative path. Keep the repository layout intact when you open it.

@@ -1,0 +1,22 @@
+# Direct dependencies of the MicroGlia project (Python 3.12).
+# Versions are the ones installed in .venv on 2026-10-30.
+# Install: uv pip install --python .venv/bin/python -r requirements.txt
+
+# Image processing (all pipelines, galleries)
+numpy==2.5.4
+opencv-python==5.0.0.93
+pillow==13.0.0
+
+# enhance/ (BM3D denoising, metrics) and pair_contour/ (gap bridging, hole filling)
+scikit-image==0.26.0
+scipy==1.18.1
+bm3d==4.0.3
+tifffile==2026.10.15
+
+# dpgnet/ (PVTv2 backbone, training and inference)
+torch==2.14.1
+torchvision==0.29.1
+timm==1.0.30
+
+# build_research_proposal_docx.py only (not installed in .venv; version not pinned)
+python-docx
