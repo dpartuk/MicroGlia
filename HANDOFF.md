@@ -21,14 +21,15 @@ uv venv --python 3.12
 uv pip install --python .venv/bin/python -r requirements.txt   # .venv has no pip; always use uv
 ```
 Raw data must be at `Data/pair-data/1..4/` (git-ignored): 64 RAW + MASK pairs, 16 per folder.
-`pair_contour/output/`, `labeling/web/` and `labeling/reference/` are git-ignored. Rebuild them:
+`pair_contour/output/` and `labeling/web/` are git-ignored. Rebuild them:
 ```bash
 .venv/bin/python pair_contour/process.py                                                    # B2_2: 345 cells
 .venv/bin/python pair_contour/process.py --raw Data/pair-data/1/VID3553_B2_1_00d00h00m.tif  # B2_1: 568 cells
 .venv/bin/python pair_contour/gallery.py
-.venv/bin/python labeling/export_web.py      # all slides in pair_contour/output -> labeling/web + reference
 ```
-The cell keys depend only on the masks, so a rebuild with the same settings gives the same keys.
+Then get the published slide files: Artifact tool `action: read`, `url` = the page, `paths` = `slides/<slide>.js`,
+into `labeling/web/slides/`. Run `.venv/bin/python labeling/check_stable.py` (must print "all published cells are unchanged").
+Do not rebuild a published slide with export_web.py; it keeps locked slides anyway.
 
 ## State on 2026-10-30
 
@@ -39,7 +40,7 @@ Decision 2026-10-30: the gallery shows "signal left outside" as "info only" and 
 `qa_flag` stays in manifest.csv. The gallery JS was tested in headless Chrome: all keys work, no errors.
 
 ### labeling/ (new) — live with one rater
-- **Published page:** https://claude.ai/artifact/7vzmvdo8PKKW37XxJYymWT (Version 4). The user shared it with the rater.
+- **Published page:** https://claude.ai/artifact/7vzmvdo8PKKW37XxJYymWT (Version 5). The user shared it with the rater.
 - **Rater instructions (Claude Doc):** https://claude.ai/artifact/AYecc2epoNu7SLvDSksEd3 — sections: open the page,
   confidence + class, export, start over, stop and continue. An open comment asks the user: email or a shared
   Drive folder for the export file. The doc says email for now.
@@ -56,14 +57,17 @@ Decision 2026-10-30: the gallery shows "signal left outside" as "info only" and 
 - **Not yet verified:** a real save and a Start over from the live page (only possible inside claude.ai).
   First task next time: read the store and confirm the rater's labels arrive:
   `ArtifactData list collection "labels"` with the page URL, then `labels/<id>/slides`.
+- **Cell stability (labeling/README.md, "Cell Stability"):** published slides are locked in `labeling/published_slides.json`
+  (hash eb0fe70a51cf for B2_1, 7270cf9cb3fd for B2_2). Each label stores its mask hash `mh` (labels saved before
+  Version 5 have none). `check_stable.py` reruns the pipeline with the locked settings: 913 / 913 identical on 2026-10-30.
 - **Merge:** `labeling/merge_labels.py` takes page exports or store documents saved by ArtifactData `out_dir`
-  (`<dir>/labels/<id>/slides/<slide>.json`). It matches labels to the current pipeline output by mask IoU ≥ 0.5 and
-  writes labeling/labels.csv + kappa. Tested: same output IoU 1.0; with aura on, the 11 cells that move to the edge
+  (`<dir>/labels/<id>/slides/<slide>.json`). It takes the masks from the published slide files (checked against the lock),
+  matches them to the current pipeline output by mask IoU ≥ 0.5, and writes labeling/labels.csv with a status per label + kappa. Tested: same output IoU 1.0; with aura on, the 11 cells that move to the edge
   are reported unmatched.
 
 ## Next work
 1. Confirm the rater's first labels arrive in the store (see above). Then confirm Start over deletes from the store.
 2. Answer the open doc comment (email vs Drive) and update section 3 of the instructions if needed.
-3. When the user approves: run pair_contour on the other 62 pairs, check each overview visually, export, and
-   republish in two batches. New slides do not change the order of slides already labeled.
+3. When the user approves: run pair_contour on the other 62 pairs, check each overview visually, then follow the
+   publish steps in labeling/README.md (check_stable → export → publish in two batches → --mark-published → commit the lock). New slides do not change the order of slides already labeled.
 4. When labels come in: dump the store with ArtifactData (`out_dir`) and run merge_labels.py.

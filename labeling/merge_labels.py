@@ -1,11 +1,16 @@
 """
-Merge expert label exports into labeling/labels.csv and report agreement.
+Merge expert labels into labeling/labels.csv and report agreement.
 
-Input: one or more JSON exports from the labeling page ("Export my labels").
-Each label carries a cell_key (slide name + mask centroid). The script finds the
-key's mask in labeling/reference/ (written by export_web.py) and matches it to the
-cells of the CURRENT pair_contour output by mask overlap (IoU). A label whose best
-IoU is below --min-iou is not matched and is reported, never guessed.
+Input: JSON exports from the labeling page ("Export my labels"), or shared-store slide documents
+saved by ArtifactData with out_dir (<dir>/labels/<rater id>/slides/<slide>.json).
+
+Reference = the published slide files (labeling/web/slides/<slide>.js, or --slides-dir with copies
+read from the published page). They hold the exact masks the rater saw. For each label:
+  1. The slide file must exist and its slide hash must equal the lock (labeling/published_slides.json).
+  2. The cell_key must be in the slide file.
+  3. If the label carries a mask hash (mh), it must equal the slide file's mask hash for that key.
+  4. The reference mask is matched to the CURRENT pair_contour output by IoU (>= --min-iou).
+A label that fails a step keeps its row with a status that names the step; it is never guessed.
 
 Agreement:
   * inter-rater: Cohen's kappa for every pair of raters, on cells both labeled (first look).
@@ -20,43 +25,9 @@ import json
 import os
 from collections import Counter, defaultdict
 
-import cv2
-import numpy as np
+import bundle
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-REF_DIR = os.path.join(ROOT, "labeling", "reference")
-PIPE_DIR = os.path.join(ROOT, "pair_contour", "output")
-OUT_CSV = os.path.join(ROOT, "labeling", "labels.csv")
-
-
-def load_reference(slide):
-    z = np.load(os.path.join(REF_DIR, slide, "masks.npz"))
-    return dict(zip(z["keys"].tolist(), z["masks"]))
-
-
-def load_current(slide):
-    slide_dir = os.path.join(PIPE_DIR, slide)
-    shape = tuple(json.load(open(os.path.join(slide_dir, "summary.json")))["image_size"])[::-1]
-    cells = {}
-    with open(os.path.join(slide_dir, "manifest.csv")) as f:
-        for row in csv.DictReader(f):
-            x1, y1, x2, y2 = (int(row[k]) for k in ("x1", "y1", "x2", "y2"))
-            full = np.zeros(shape, dtype=bool)
-            full[y1:y2, x1:x2] = cv2.imread(os.path.join(slide_dir, row["mask_filename"]), cv2.IMREAD_GRAYSCALE) > 0
-            cells[int(row["cell_id"])] = full
-    return cells
-
-
-def best_match(mask, current):
-    best_id, best_iou = None, 0.0
-    for cid, cm in current.items():
-        inter = np.count_nonzero(mask & cm)
-        if inter == 0:
-            continue
-        iou = inter / np.count_nonzero(mask | cm)
-        if iou > best_iou:
-            best_id, best_iou = cid, iou
-    return best_id, best_iou
+OUT_CSV = os.path.join(bundle.ROOT, "labeling", "labels.csv")
 
 
 def cohen_kappa(a, b):
@@ -69,14 +40,7 @@ def cohen_kappa(a, b):
     return 1.0 if pe == 1 else (po - pe) / (1 - pe)
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Merge labeling page exports into labels.csv")
-    parser.add_argument("exports", nargs="+", help="JSON export files (globs allowed)")
-    parser.add_argument("--min-iou", type=float, default=0.5, help="Lowest mask IoU accepted as the same cell")
-    parser.add_argument("--out", default=OUT_CSV)
-    args = parser.parse_args()
-
-    files = sorted({p for pat in args.exports for p in glob.glob(pat)})
+def read_labels(files):
     labels = []
     for path in files:
         data = json.load(open(path))
@@ -89,47 +53,100 @@ def main():
         for row in data["labels"]:
             if row.get("label"):
                 labels.append(dict(row, rater_id=data["rater_id"], rater=data.get("rater") or data["rater_id"], source=os.path.basename(path)))
+    return labels
+
+
+class Reference:
+    """Published slide files, checked against the lock, matched to the current pipeline output."""
+
+    def __init__(self, slides_dir, min_iou):
+        self.slides_dir, self.min_iou = slides_dir, min_iou
+        self.lock = bundle.load_lock()
+        self.slides, self.current, self.matches = {}, {}, {}
+
+    def slide(self, name):
+        if name not in self.slides:
+            path = os.path.join(self.slides_dir, name + ".js")
+            if not os.path.exists(path):
+                self.slides[name] = None
+                print(f"  {name}: no slide file in {self.slides_dir}")
+            else:
+                d = bundle.read_slide_js(path)
+                locked = self.lock.get(name, {}).get("hash")
+                if locked != d.get("hash"):
+                    print(f"  {name}: slide file hash {d.get('hash')} differs from the lock ({locked}): labels not used")
+                    self.slides[name] = None
+                else:
+                    self.slides[name] = {"data": d, "cells": {c["key"]: c for c in d["cells"]}}
+        return self.slides[name]
+
+    def match(self, name, key):
+        """(status, current cell id, iou, mask hash) for one cell key."""
+        s = self.slide(name)
+        if s is None:
+            return "no_reference", None, 0.0, ""
+        cell = s["cells"].get(key)
+        if cell is None:
+            return "unknown_key", None, 0.0, ""
+        if key not in self.matches:
+            if name not in self.current:
+                pipe = os.path.join(bundle.PIPE_DIR, name)
+                self.current[name] = bundle.pipeline_masks(pipe) if os.path.isdir(pipe) else []
+            mask = bundle.decode_mask(cell, s["data"]["width"], s["data"]["height"])
+            cid, iou = bundle.best_match(mask, self.current[name])
+            self.matches[key] = ("matched", cid, iou) if iou >= self.min_iou else ("no_current_cell", None, iou)
+        return self.matches[key] + (cell["mh"],)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Merge labeling page exports or store documents into labels.csv")
+    parser.add_argument("exports", nargs="+", help="JSON files (globs allowed)")
+    parser.add_argument("--slides-dir", default=bundle.SLIDES_DIR, help="Folder with the published slide files")
+    parser.add_argument("--min-iou", type=float, default=bundle.MIN_IOU, help="Lowest mask IoU accepted as the same cell")
+    parser.add_argument("--out", default=OUT_CSV)
+    args = parser.parse_args()
+
+    files = sorted({p for pat in args.exports for p in glob.glob(pat)})
+    labels = read_labels(files)
     print(f"Read {len(labels)} labels from {len(files)} file(s)")
 
-    ref_cache, cur_cache, match_cache = {}, {}, {}
-    out_rows, unmatched = [], 0
+    ref = Reference(args.slides_dir, args.min_iou)
+    out_rows, status_count = [], Counter()
     for row in labels:
-        slide, key = row["slide"], row["cell_key"]
-        if key not in match_cache:
-            if slide not in ref_cache:
-                ref_cache[slide], cur_cache[slide] = load_reference(slide), load_current(slide)
-            match_cache[key] = best_match(ref_cache[slide][key], cur_cache[slide])
-        cid, iou = match_cache[key]
-        if iou < args.min_iou:
-            unmatched += 1
-            cid = None
-        out_rows.append([slide, key, cid if cid is not None else "", round(iou, 3), row["rater_id"], row["rater"],
-                         row["label"], row.get("conf") or "", row.get("note") or "", row["repeat"], row.get("t", ""), row["source"]])
+        status, cid, iou, mh = ref.match(row["slide"], row["cell_key"])
+        if status == "matched" and row.get("mh") and row["mh"] != mh:
+            status, cid = "mask_hash_mismatch", None
+        row["status"] = status
+        status_count[status] += 1
+        out_rows.append([row["slide"], row["cell_key"], mh, status, cid if cid is not None else "", round(iou, 3),
+                         row["rater_id"], row["rater"], row["label"], row.get("conf") or "", row.get("note") or "",
+                         row["repeat"], row.get("t", ""), row["source"]])
 
     with open(args.out, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["slide", "cell_key", "current_cell_id", "iou", "rater_id", "rater", "label", "confidence", "note", "repeat", "time", "source"])
+        w.writerow(["slide", "cell_key", "mask_hash", "status", "current_cell_id", "iou", "rater_id", "rater", "label",
+                    "confidence", "note", "repeat", "time", "source"])
         w.writerows(out_rows)
-    print(f"Wrote {args.out}: {len(out_rows)} rows, {unmatched} not matched to a current cell (IoU < {args.min_iou})")
+    print(f"Wrote {args.out}: {len(out_rows)} rows")
+    for status, n in sorted(status_count.items()):
+        print(f"  {status}: {n}")
 
-    first = defaultdict(dict)   # rater -> key -> label
-    second = defaultdict(dict)
+    first, second = defaultdict(dict), defaultdict(dict)
     for r in labels:
         (second if r["repeat"] else first)[r["rater"]][r["cell_key"]] = r["label"]
-
     print("\nLabels per rater (first look):")
     for rater, d in first.items():
         print(f"  {rater}: {len(d)} cells  {dict(Counter(d.values()))}")
-    print("\nInter-rater Cohen's kappa (first look, shared cells):")
-    for ra, rb in itertools.combinations(sorted(first), 2):
-        keys = sorted(set(first[ra]) & set(first[rb]))
-        k = cohen_kappa([first[ra][x] for x in keys], [first[rb][x] for x in keys])
-        print(f"  {ra} vs {rb}: kappa {k:.3f} on {len(keys)} cells")
+    pairs = list(itertools.combinations(sorted(first), 2))
+    if pairs:
+        print("\nInter-rater Cohen's kappa (first look, shared cells):")
+        for ra, rb in pairs:
+            keys = sorted(set(first[ra]) & set(first[rb]))
+            print(f"  {ra} vs {rb}: kappa {cohen_kappa([first[ra][x] for x in keys], [first[rb][x] for x in keys]):.3f} on {len(keys)} cells")
     print("\nIntra-rater Cohen's kappa (first vs second look):")
     for rater in sorted(second):
         keys = sorted(set(second[rater]) & set(first[rater]))
-        k = cohen_kappa([first[rater][x] for x in keys], [second[rater][x] for x in keys])
-        print(f"  {rater}: kappa {k:.3f} on {len(keys)} cells")
+        print(f"  {rater}: kappa {cohen_kappa([first[rater][x] for x in keys], [second[rater][x] for x in keys]):.3f} on {len(keys)} cells")
 
 
 if __name__ == "__main__":

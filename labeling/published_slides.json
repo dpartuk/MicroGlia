@@ -1,0 +1,58 @@
+{
+ "VID3553_B2_1_00d00h00m": {
+  "hash": "eb0fe70a51cf",
+  "cells": 568,
+  "raw_image": "VID3553_B2_1_00d00h00m.tif",
+  "settings": {
+   "core_level": 100,
+   "min_area": 60,
+   "max_area": 30000,
+   "ring_radius": 3,
+   "pocket_std": 6.0,
+   "aura_free_px": 0,
+   "aura_px": 0,
+   "aura_delta": 8,
+   "background_level": 128.0,
+   "max_gap": 8,
+   "contact_fit_residual": 0,
+   "contact_max_depth": 8,
+   "contact_min_free": 0.35,
+   "qa_ring_px": 4,
+   "qa_k": 3.0,
+   "qa_flag_pct": 25.0,
+   "qa_min_ring_coverage": 0.5,
+   "qa_blob_px": 150,
+   "subcell_padding": 18
+  },
+  "commit": "58db3c5",
+  "published": "2026-10-30"
+ },
+ "VID3553_B2_2_00d00h00m": {
+  "hash": "7270cf9cb3fd",
+  "cells": 345,
+  "raw_image": "VID3553_B2_2_00d00h00m.tif",
+  "settings": {
+   "core_level": 100,
+   "min_area": 60,
+   "max_area": 30000,
+   "ring_radius": 3,
+   "pocket_std": 6.0,
+   "aura_free_px": 0,
+   "aura_px": 0,
+   "aura_delta": 8,
+   "background_level": 128.0,
+   "max_gap": 8,
+   "contact_fit_residual": 0,
+   "contact_max_depth": 8,
+   "contact_min_free": 0.35,
+   "qa_ring_px": 4,
+   "qa_k": 3.0,
+   "qa_flag_pct": 25.0,
+   "qa_min_ring_coverage": 0.5,
+   "qa_blob_px": 150,
+   "subcell_padding": 18
+  },
+  "commit": "58db3c5",
+  "published": "2026-10-30"
+ }
+}

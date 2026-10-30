@@ -292,7 +292,7 @@ textarea { width: 100%; min-height: 40px; resize: vertical; padding: 6px 8px; bo
   function queueWrite(name, field, key, rec) {
     saveLocal();
     if (!dbOK) { setStatus("saved", "Saved in this browser"); return; }
-    const q = writeQueue.get(name) || { cells: {}, repeats: {} };
+    const q = writeQueue.get(name) || { cells: {}, repeats: {}, slide_hash: slide.hash || "" };
     q[field][key] = rec;
     writeQueue.set(name, q);
     setStatus("saving", "Saving");
@@ -311,7 +311,7 @@ textarea { width: 100%; min-height: 40px; resize: vertical; padding: 6px 8px; bo
       for (const [name, patch] of Array.from(writeQueue.entries())) {
         writeQueue.delete(name);
         if (docExists.has(name)) { await slideDoc(name).update(patch); continue; }
-        const all = { slide: name, cells: {}, repeats: {} };
+        const all = { slide: name, slide_hash: patch.slide_hash, cells: {}, repeats: {} };
         for (const [k, v] of Object.entries(state.labels)) if (slideOf(k) === name) all.cells[k] = v;
         for (const [k, v] of Object.entries(state.repeats)) if (slideOf(k) === name) all.repeats[k] = v;
         await slideDoc(name).set(all);
@@ -368,7 +368,7 @@ textarea { width: 100%; min-height: 40px; resize: vertical; padding: 6px 8px; bo
       for (let i = 0; i < m.length; i++) m[i] = (bin.charCodeAt(i >> 3) >> (7 - (i & 7))) & 1;
       c.mask = m;
     }
-    const s = { name, width: d.width, height: d.height, pad: d.pad, cells: d.cells, grey, canvas: cv };
+    const s = { name, hash: d.hash, width: d.width, height: d.height, pad: d.pad, cells: d.cells, grey, canvas: cv };
     s.byKey = new Map(d.cells.map(c => [c.key, c]));
     s.order = buildOrder(d.cells.map(c => c.key), raterId + "|" + name);
     return s;
@@ -498,7 +498,8 @@ textarea { width: 100%; min-height: 40px; resize: vertical; padding: 6px 8px; bo
     const it = slide.order[pos];
     const field = it.rep ? "repeats" : "labels";
     const prev = state[field][it.key] || { label: null, conf: pendingConf, note: "" };
-    const rec = Object.assign({}, prev, patch, { t: new Date().toISOString() });
+    // mh = hash of the exact mask shown, so a label can never attach to a different cut later.
+    const rec = Object.assign({}, prev, patch, { mh: slide.byKey.get(it.key).mh || "", t: new Date().toISOString() });
     state[field][it.key] = rec;
     queueWrite(slide.name, it.rep ? "repeats" : "cells", it.key, rec);
     renderPanel();
