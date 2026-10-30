@@ -123,6 +123,8 @@ pair_contour/
 
 **QA note.** With a contour-only mask, the "signal left outside" check mostly measures the white aura,
 which is now left out by design. Its flag (> 25%, 240 cells) no longer marks mistakes.
+The gallery therefore shows the value as "info only" and does not show the flag (decision 2026-10-30).
+`qa_flag` stays in `manifest.csv` for reference.
 
 Earlier settings on the same image (for reference):
 

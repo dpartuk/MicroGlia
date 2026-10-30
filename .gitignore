@@ -17,3 +17,6 @@ enhance/output/
 
 # Phase 2 raw image pairs (186 MB): copied separately, not stored in git
 Data/pair-data/
+labeling/web/
+labeling/reference/
+labeling/labels.csv

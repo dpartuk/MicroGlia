@@ -954,9 +954,9 @@ function render() {{
   metaDim.textContent = c.width + ' x ' + c.height + ' px';
   metaArea.textContent = c.area;
   metaFlag.textContent = c.flagged ? 'True (partial cell)' : 'False';
+  // The qa_flag is not shown: with the contour-only mask it measures the excluded aura, not mistakes.
   metaQa.textContent = c.outside_signal_pct === '' ? '-' :
-    c.outside_signal_pct + '% of ring' + (c.crowded ? ' (crowded: not scored)' : c.qa_flag ? ' (FLAGGED)' : '');
-  metaQa.style.color = c.qa_flag ? 'var(--flag-text)' : '';
+    c.outside_signal_pct + '% of ring' + (c.crowded ? ' (crowded: not scored)' : ' (info only)');
 
   if (c.flagged) {{
     flagBadge.classList.remove('hidden');

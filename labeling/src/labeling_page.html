@@ -1,0 +1,650 @@
+<title>Microglia Cell Labeling</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one-screen labeling bench. Specimen views on the left, rubric and decision keys on the right. */
+:root {
+  --bg: #eef1f3;
+  --panel: #ffffff;
+  --ink: #18222b;
+  --muted: #5b6873;
+  --line: #d3dae0;
+  --accent: #0d6e8a;
+  --accent-ink: #ffffff;
+  --cutbg: #c9d6e6;
+  --warn: #9a5b00;
+  --bad: #a3262a;
+  --c1: #3c7d3a; --c2: #2d6aa8; --c3: #b0451c; --c4: #7a55a8; --c5: #6b6b2a;
+  --cx: #a3262a; --cu: #66717b;
+  --font-ui: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11171c; --panel: #192229; --ink: #e3e9ee; --muted: #93a1ad; --line: #2c3943;
+  --accent: #4fb3cf; --accent-ink: #0b1418; --cutbg: #22324a; --warn: #e2a64a; --bad: #ef7a7d;
+  --c1: #79c174; --c2: #6fa8e6; --c3: #f08a5d; --c4: #b994ea; --c5: #c9c46a; --cx: #ef7a7d; --cu: #9aa6b0;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #11171c; --panel: #192229; --ink: #e3e9ee; --muted: #93a1ad; --line: #2c3943;
+  --accent: #4fb3cf; --accent-ink: #0b1418; --cutbg: #22324a; --warn: #e2a64a; --bad: #ef7a7d;
+  --c1: #79c174; --c2: #6fa8e6; --c3: #f08a5d; --c4: #b994ea; --c5: #c9c46a; --cx: #ef7a7d; --cu: #9aa6b0;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--font-ui);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 24px;
+}
+h1 { font-size: 17px; font-weight: 600; margin: 0; text-wrap: balance; }
+.label-caps { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 12px; }
+header .grow { flex: 1 1 auto; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.status[data-state="saved"] .dot { background: var(--c1); }
+.status[data-state="saving"] .dot { background: var(--warn); }
+.status[data-state="error"] .dot { background: var(--bad); }
+.status[data-state="error"] { color: var(--bad); }
+.rater { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+.rater input { width: 7em; padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); }
+
+.progress { display: flex; align-items: center; gap: 8px; flex: 0 1 220px; min-width: 150px; }
+.rater select { max-width: 22em; padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); font-family: var(--font-data); font-size: 12px; }
+.bar { flex: 1; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--accent); }
+
+main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 12px; align-items: start; }
+@media (max-width: 900px) { main { grid-template-columns: minmax(0, 1fr); } }
+
+.bench { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 600px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+.view { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px; min-width: 0; }
+.view .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.stage { display: grid; place-items: center; height: 360px; max-width: 100%; overflow: hidden; }
+.slidebox { display: grid; place-items: center; min-height: 0; }
+.stage canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
+.scalebar { font-size: 11px; color: var(--muted); }
+
+.cellbar { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; margin: 12px 0; font-size: 12px; color: var(--muted); }
+.cellbar b { color: var(--ink); font-weight: 500; }
+.repeat-chip { display: none; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--line); font-size: 11px; }
+
+.bottom { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 600px) { .bottom { grid-template-columns: minmax(0, 1fr); } }
+#slideCanvas { max-width: 100%; height: auto; display: block; border-radius: 3px; }
+.keys { font-size: 12px; color: var(--muted); line-height: 1.8; }
+kbd { font-family: var(--font-data); font-size: 11px; padding: 0 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3px; background: var(--panel); color: var(--ink); }
+
+aside { display: flex; flex-direction: column; gap: 12px; }
+.classes { display: flex; flex-direction: column; gap: 6px; }
+.cls {
+  display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 2px 10px; text-align: left;
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel);
+  border-left: 4px solid var(--cc);
+}
+.cls kbd { grid-row: span 2; align-self: center; justify-self: center; }
+.cls .name { font-weight: 600; }
+.cls .name small { font-weight: 400; color: var(--muted); }
+.cls .desc { font-size: 12px; color: var(--muted); }
+.cls[aria-pressed="true"] { background: var(--cc); border-color: var(--cc); color: var(--accent-ink); }
+.cls[aria-pressed="true"] .desc, .cls[aria-pressed="true"] small { color: var(--accent-ink); opacity: .85; }
+.cls[aria-pressed="true"] kbd { background: transparent; color: var(--accent-ink); border-color: var(--accent-ink); }
+
+.row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+.seg button { border: 0; padding: 4px 10px; background: var(--panel); font-size: 12px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+textarea { width: 100%; min-height: 40px; resize: vertical; padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); font: 13px/1.4 var(--font-ui); color: var(--ink); }
+.nav { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.btn { padding: 6px 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); font-size: 13px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.danger { background: var(--bad); border-color: var(--bad); color: var(--accent-ink); }
+.btn.small { padding: 1px 8px; font-size: 12px; line-height: 1.4; }
+.reset { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; }
+.check { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+.notice { font-size: 12px; color: var(--muted); }
+.notice.err { color: var(--bad); }
+
+/* Desktop: the whole bench fits the window, so no page scroll is needed. */
+@media (min-width: 901px) and (min-height: 560px) {
+  html, body { height: 100%; }
+  body { display: flex; flex-direction: column; overflow: hidden; padding-block: 10px; }
+  header { flex: none; margin-bottom: 10px; }
+  main { flex: 1 1 auto; min-height: 0; grid-template-rows: minmax(0, 1fr); align-items: stretch; }
+  main > section { display: flex; flex-direction: column; min-height: 0; }
+  .bench { flex: 1 1 62%; min-height: 0; }
+  .bench .view { display: flex; flex-direction: column; min-height: 0; }
+  .stage { flex: 1 1 auto; height: auto; min-height: 0; }
+  .cellbar { flex: none; margin: 8px 0; }
+  .bottom { flex: 1 1 38%; min-height: 0; max-height: 300px; }
+  .bottom .view { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .slidebox { flex: 1 1 auto; display: flex; justify-content: center; }
+  #slideCanvas { height: 100%; width: auto; max-width: 100%; object-fit: contain; }
+  .bottom .view.keys { display: block; line-height: 1.65; overflow: auto; }
+  aside { min-height: 0; overflow-y: auto; gap: 10px; }
+  .cls { padding: 5px 8px; }
+  .cls .desc { font-size: 11.5px; line-height: 1.35; }
+  .view { padding: 8px 10px; }
+}
+/* Short windows: one line per class description (full text on hover), smaller note box. */
+@media (min-width: 901px) and (max-height: 820px) {
+  .cls .desc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .classes { gap: 4px; }
+  .cls { padding-block: 4px; }
+  textarea { min-height: 30px; }
+  #storeNotice { display: none; }
+  .nav .btn { padding-block: 4px; }
+}
+</style>
+
+<header>
+  <h1>Microglia Cell Labeling</h1>
+  <label class="rater" for="slideSelect">Slide <select id="slideSelect"></select></label>
+  <div class="progress" title="All slides"><span class="label-caps">All</span><span class="mono" id="progText">0 / 0</span><div class="bar"><i id="progBar"></i></div></div>
+  <div class="grow"></div>
+  <label class="rater" for="raterInput">Rater code <input id="raterInput" maxlength="12" placeholder="initials" autocomplete="off"></label>
+  <span class="reset">
+    <button class="btn small" id="resetBtn" type="button">Start over</button>
+    <span id="resetConfirm" class="reset" hidden>Delete all <b class="mono" id="resetCount">0</b> labels?
+      <button class="btn small danger" id="resetDo" type="button">Delete all</button>
+      <button class="btn small" id="resetCancel" type="button">Cancel</button>
+    </span>
+  </span>
+  <span class="status" id="status" data-state="idle"><span class="dot"></span><span id="statusText">Loading</span></span>
+</header>
+
+<main>
+  <section>
+    <div class="bench">
+      <div class="view">
+        <div class="head"><span class="label-caps">Cut from RAW image</span><span class="scalebar mono" id="cutScale"></span></div>
+        <div class="stage" id="cutStage"><canvas id="cutCanvas" width="1" height="1"></canvas></div>
+      </div>
+      <div class="view">
+        <div class="head"><span class="label-caps">Surroundings</span><span class="scalebar mono" id="ctxScale"></span></div>
+        <div class="stage" id="ctxStage"><canvas id="ctxCanvas" width="1" height="1"></canvas></div>
+      </div>
+    </div>
+
+    <div class="cellbar">
+      <span>Item <b class="mono" id="posText">-</b></span>
+      <span>Slide done <b class="mono" id="slideProg">-</b></span>
+      <span>Centre <b class="mono" id="centreText">-</b></span>
+      <span>Area <b class="mono" id="areaText">-</b></span>
+      <span class="repeat-chip" id="repeatChip">Second look</span>
+    </div>
+
+    <div class="bottom">
+      <div class="view">
+        <div class="head"><span class="label-caps">Position on slide</span><span class="scalebar mono" id="slideText"></span></div>
+        <div class="slidebox"><canvas id="slideCanvas" width="1" height="1"></canvas></div>
+      </div>
+      <div class="view keys">
+        <div class="label-caps" style="margin-bottom:4px">Keys</div>
+        <kbd>1</kbd>–<kbd>5</kbd> class &nbsp; <kbd>X</kbd> not a cell &nbsp; <kbd>U</kbd> unsure<br>
+        <kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> confidence low / medium / high<br>
+        <kbd>←</kbd> <kbd>→</kbd> previous / next &nbsp; <kbd>J</kbd> next unlabeled<br>
+        <kbd>C</kbd> outline on/off &nbsp; <kbd>P</kbd> sharp pixels &nbsp; <kbd>N</kbd> note (<kbd>Esc</kbd> leaves it)<br>
+        <span class="notice">Confidence starts at High for each cell. Change it before the class key. A class key saves the label and moves on when auto-advance is on.</span>
+      </div>
+    </div>
+  </section>
+
+  <aside>
+    <div class="view">
+      <div class="row" style="margin-bottom:8px"><span class="label-caps" style="width:84px">Confidence</span>
+        <div class="seg" id="confSeg">
+          <button type="button" data-conf="low">Low</button><button type="button" data-conf="medium">Medium</button><button type="button" data-conf="high">High</button>
+        </div>
+      </div>
+      <div class="head"><span class="label-caps">Morphology class</span><span class="notice">Presaizen 2026</span></div>
+      <div class="classes" id="classes"></div>
+    </div>
+    <div class="view" style="display:flex;flex-direction:column;gap:10px">
+      <label for="noteInput" class="label-caps">Note (optional)</label>
+      <textarea id="noteInput" rows="2" placeholder="For example: two cells in one cut"></textarea>
+      <div class="nav">
+        <button class="btn" id="prevBtn" type="button">← Previous</button>
+        <button class="btn" id="unlabeledBtn" type="button">Next unlabeled</button>
+        <button class="btn primary" id="nextBtn" type="button">Next →</button>
+      </div>
+      <div class="row" style="justify-content:space-between">
+        <label class="check" for="autoAdvance"><input type="checkbox" id="autoAdvance" checked> Auto-advance</label>
+        <button class="btn" id="exportBtn" type="button">Export my labels (JSON)</button>
+      </div>
+      <div class="notice" id="storeNotice"></div>
+    </div>
+  </aside>
+</main>
+
+<script src="slides.js"></script>
+<script>
+(function () {
+  "use strict";
+  const CLASSES = [
+    { key: "1", id: "resting", name: "Resting", alt: "Quiescent", desc: "Small, circular soma. No branches." },
+    { key: "2", id: "surveilling", name: "Surveilling", alt: "Patrolling", desc: "Circular or spindle soma with about 2 branching podia." },
+    { key: "3", id: "activated", name: "Activated", alt: "Reactive", desc: "Irregular soma with 2–3 podia." },
+    { key: "4", id: "resolution", name: "Resolution", alt: "Senescent", desc: "Amoeboid or flat soma, medium to large. No podia." },
+    { key: "5", id: "dystrophic", name: "Dystrophic", alt: "", desc: "Fragmented or beaded processes. No clear central soma." },
+    { key: "x", id: "not_cell", name: "Not a cell / bad cut", alt: "", desc: "Debris, two cells in one cut, or the cut misses part of the cell." },
+    { key: "u", id: "unsure", name: "Unsure", alt: "", desc: "A cell, but the class cannot be decided." },
+  ];
+  const COLORS = { "1": "--c1", "2": "--c2", "3": "--c3", "4": "--c4", "5": "--c5", x: "--cx", u: "--cu" };
+  const CONTEXT_FACTOR = 2.5, CONTEXT_MIN = 120, REPEAT_GAP = 30;
+
+  const IDX = window.LABELING;
+  const $ = (id) => document.getElementById(id);
+  if (!IDX || !IDX.slides || !IDX.slides.length) { $("statusText").textContent = "slides.js did not load"; return; }
+  const STORE_ID = "mglabel:v2";
+  const slideOf = (key) => key.slice(0, key.lastIndexOf("@"));
+  const nRepeats = (n) => Math.round(n * (IDX.repeat_fraction || 0));
+
+  // ---------- state ----------
+  const state = { labels: {}, repeats: {}, rater: "" };
+  let raterId = null, db = null, dbOK = false;
+  let slide = null;        // loaded slide: {name, width, height, pad, cells, byKey, grey, canvas, order}
+  const DEFAULT_CONF = "high";
+  let pos = 0, pendingConf = DEFAULT_CONF, showOutline = true, pixelated = false;
+
+  const LS = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage blocked */ } },
+  };
+  const localKey = () => STORE_ID + ":" + raterId;
+  const saveLocal = () => LS.set(localKey(), JSON.stringify(state));
+
+  // ---------- order: seeded shuffle + second looks, per slide ----------
+  function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function buildOrder(keys, seedStr) {
+    const r = rng(hashStr(seedStr));
+    keys = keys.slice();
+    for (let i = keys.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [keys[i], keys[j]] = [keys[j], keys[i]]; }
+    const seq = keys.map(k => ({ key: k, rep: false }));
+    const gap = Math.min(REPEAT_GAP, Math.floor(keys.length / 3));
+    const picks = keys.slice().sort((a, b) => hashStr(seedStr + a) - hashStr(seedStr + b)).slice(0, nRepeats(keys.length));
+    for (const k of picks) {
+      const lo = seq.findIndex(e => e.key === k && !e.rep) + gap + 1;
+      const at = lo >= seq.length ? seq.length : lo + Math.floor(r() * (seq.length - lo + 1));
+      seq.splice(at, 0, { key: k, rep: true });
+    }
+    return seq;
+  }
+
+  // ---------- shared store ----------
+  const writeQueue = new Map(); // slide name -> {cells:{}, repeats:{}}
+  const docExists = new Set();
+  let flushTimer = null, flushing = false, metaWritten = false;
+  const slideDoc = (name) => db.doc("labels/" + raterId + "/slides/" + name);
+  function setStatus(s, text) { $("status").dataset.state = s; $("statusText").textContent = text; }
+
+  function queueWrite(name, field, key, rec) {
+    saveLocal();
+    if (!dbOK) { setStatus("saved", "Saved in this browser"); return; }
+    const q = writeQueue.get(name) || { cells: {}, repeats: {} };
+    q[field][key] = rec;
+    writeQueue.set(name, q);
+    setStatus("saving", "Saving");
+    clearTimeout(flushTimer);
+    flushTimer = setTimeout(flush, 600);
+  }
+
+  async function flush() {
+    if (flushing) { flushTimer = setTimeout(flush, 300); return; }
+    flushing = true;
+    try {
+      if (!metaWritten) {
+        await db.doc("labels/" + raterId).set({ rater: state.rater, updated: new Date().toISOString() });
+        metaWritten = true;
+      }
+      for (const [name, patch] of Array.from(writeQueue.entries())) {
+        writeQueue.delete(name);
+        if (docExists.has(name)) { await slideDoc(name).update(patch); continue; }
+        const all = { slide: name, cells: {}, repeats: {} };
+        for (const [k, v] of Object.entries(state.labels)) if (slideOf(k) === name) all.cells[k] = v;
+        for (const [k, v] of Object.entries(state.repeats)) if (slideOf(k) === name) all.repeats[k] = v;
+        await slideDoc(name).set(all);
+        docExists.add(name);
+      }
+      setStatus(writeQueue.size ? "saving" : "saved", writeQueue.size ? "Saving" : "Saved to shared store");
+    } catch (e) {
+      const code = e && e.code;
+      if (code === "invalid_argument" || code === "not_granted" || code === "revoked" || code === "quota_exceeded") {
+        dbOK = false;
+        setStatus("error", "Shared store refused the save");
+        $("storeNotice").textContent = "Labels are kept in this browser only. Ask the owner for Editor access, or use Export.";
+        $("storeNotice").className = "notice err";
+      } else {
+        setStatus("error", "Save failed, retrying");
+        flushTimer = setTimeout(flush, 3000 + Math.random() * 2000);
+      }
+    } finally { flushing = false; }
+  }
+
+  function mergeIn(dst, src) {
+    for (const [k, v] of Object.entries(src)) if (!dst[k] || (v.t || "") > (dst[k].t || "")) dst[k] = v;
+  }
+  async function loadShared() {
+    const snap = await db.collection("labels/" + raterId + "/slides").get();
+    for (const d of snap.docs) {
+      docExists.add(d.id);
+      mergeIn(state.labels, d.data().cells || {});
+      mergeIn(state.repeats, d.data().repeats || {});
+    }
+    const meta = await db.doc("labels/" + raterId).get();
+    if (meta.exists) { metaWritten = true; if (!state.rater && meta.data().rater) state.rater = meta.data().rater; }
+  }
+
+  // ---------- slide loading ----------
+  function loadScript(src) {
+    return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("Cannot load " + src)); document.head.appendChild(s); });
+  }
+  async function loadSlide(name) {
+    window.SLIDE_DATA = window.SLIDE_DATA || {};
+    if (!window.SLIDE_DATA[name]) await loadScript("slides/" + encodeURIComponent(name) + ".js");
+    const d = window.SLIDE_DATA[name];
+    const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = d.raw; });
+    const cv = document.createElement("canvas");
+    cv.width = d.width; cv.height = d.height;
+    const g = cv.getContext("2d", { willReadFrequently: true });
+    g.drawImage(img, 0, 0);
+    const rgba = g.getImageData(0, 0, d.width, d.height).data;
+    const grey = new Uint8Array(d.width * d.height);
+    for (let i = 0; i < grey.length; i++) grey[i] = rgba[i * 4];
+    for (const c of d.cells) {
+      const bin = atob(c.bits), w = c.box[2] - c.box[0], h = c.box[3] - c.box[1];
+      const m = new Uint8Array(w * h);
+      for (let i = 0; i < m.length; i++) m[i] = (bin.charCodeAt(i >> 3) >> (7 - (i & 7))) & 1;
+      c.mask = m;
+    }
+    const s = { name, width: d.width, height: d.height, pad: d.pad, cells: d.cells, grey, canvas: cv };
+    s.byKey = new Map(d.cells.map(c => [c.key, c]));
+    s.order = buildOrder(d.cells.map(c => c.key), raterId + "|" + name);
+    return s;
+  }
+
+  async function openSlide(name, startPos) {
+    setStatus("idle", "Loading slide");
+    try { slide = await loadSlide(name); }
+    catch (e) { setStatus("error", "Slide did not load"); $("storeNotice").textContent = String(e.message || e); return; }
+    for (const d of Object.keys(window.SLIDE_DATA)) if (d !== name) delete window.SLIDE_DATA[d];
+    $("slideSelect").value = name;
+    LS.set(STORE_ID + ":slide:" + raterId, name);
+    const p = startPos != null ? startPos : parseInt(LS.get(STORE_ID + ":pos:" + raterId + ":" + name) || "", 10);
+    setStatus(dbOK ? "saved" : "idle", dbOK ? "Connected to shared store" : "Browser-only mode");
+    show(Number.isFinite(p) ? p : 0);
+  }
+
+  // ---------- rendering ----------
+  const cutCanvas = $("cutCanvas"), ctxCanvas = $("ctxCanvas"), slideCanvas = $("slideCanvas");
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function rgbOf(color) { const c = document.createElement("canvas").getContext("2d"); c.fillStyle = color; const h = c.fillStyle; return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); }
+  function fitScale(stage, w, h) {
+    const box = stage.getBoundingClientRect();
+    const s = Math.max(1, Math.min(8, Math.min((box.width - 4) / w, (box.height - 4) / h))) || 1;
+    return pixelated ? Math.floor(s) : Math.round(s * 10) / 10;
+  }
+
+  function render() {
+    const c = slide.byKey.get(slide.order[pos].key), W = slide.width, H = slide.height;
+    const [mx1, my1, mx2, my2] = c.box, mw = mx2 - mx1;
+
+    // Cut: RAW pixels inside the mask, neutral tint outside, padded box as in pair_contour.
+    const x1 = Math.max(0, mx1 - slide.pad), y1 = Math.max(0, my1 - slide.pad);
+    const x2 = Math.min(W, mx2 + slide.pad), y2 = Math.min(H, my2 + slide.pad);
+    const cw = x2 - x1, ch = y2 - y1;
+    const tmp = document.createElement("canvas"); tmp.width = cw; tmp.height = ch;
+    const t = tmp.getContext("2d"), id = t.createImageData(cw, ch), px = id.data, bg = rgbOf(cssVar("--cutbg"));
+    for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+      const gx = x1 + x, gy = y1 + y, o = (y * cw + x) * 4;
+      const inside = gx >= mx1 && gx < mx2 && gy >= my1 && gy < my2 && c.mask[(gy - my1) * mw + (gx - mx1)];
+      if (inside) { const v = slide.grey[gy * W + gx]; px[o] = px[o + 1] = px[o + 2] = v; }
+      else { px[o] = bg[0]; px[o + 1] = bg[1]; px[o + 2] = bg[2]; }
+      px[o + 3] = 255;
+    }
+    t.putImageData(id, 0, 0);
+    const sc = fitScale($("cutStage"), cw, ch);
+    cutCanvas.width = Math.round(cw * sc); cutCanvas.height = Math.round(ch * sc);
+    const g = cutCanvas.getContext("2d");
+    g.imageSmoothingEnabled = !pixelated;
+    g.drawImage(tmp, 0, 0, cutCanvas.width, cutCanvas.height);
+    $("cutScale").textContent = cw + "×" + ch + " px · " + sc + "×";
+
+    // Surroundings: square RAW crop around the cell, outline drawn at display resolution.
+    const side = Math.min(W, H, Math.max(CONTEXT_MIN, Math.round(Math.max(mw, my2 - my1) * CONTEXT_FACTOR)));
+    const sx1 = Math.min(Math.max(0, c.cx - (side >> 1)), W - side), sy1 = Math.min(Math.max(0, c.cy - (side >> 1)), H - side);
+    const sx = fitScale($("ctxStage"), side, side);
+    ctxCanvas.width = ctxCanvas.height = Math.round(side * sx);
+    const h = ctxCanvas.getContext("2d");
+    h.imageSmoothingEnabled = !pixelated;
+    h.drawImage(slide.canvas, sx1, sy1, side, side, 0, 0, ctxCanvas.width, ctxCanvas.height);
+    if (showOutline) {
+      h.strokeStyle = "rgba(255, 196, 0, 0.9)"; h.lineWidth = 1.5;
+      for (const poly of c.outline) {
+        h.beginPath();
+        poly.forEach(([x, y], i) => { const X = (x + mx1 - sx1 + 0.5) * sx, Y = (y + my1 - sy1 + 0.5) * sx; i ? h.lineTo(X, Y) : h.moveTo(X, Y); });
+        h.closePath(); h.stroke();
+      }
+    }
+    $("ctxScale").textContent = side + "×" + side + " px · " + sx + "×";
+
+    // Position on the slide.
+    const k = Math.min(1, 720 / W);
+    slideCanvas.width = Math.round(W * k); slideCanvas.height = Math.round(H * k);
+    const m = slideCanvas.getContext("2d");
+    m.drawImage(slide.canvas, 0, 0, slideCanvas.width, slideCanvas.height);
+    m.strokeStyle = "#ffc400"; m.lineWidth = 2;
+    m.strokeRect(mx1 * k - 3, my1 * k - 3, mw * k + 6, (my2 - my1) * k + 6);
+  }
+
+  const recOf = (e) => (e.rep ? state.repeats : state.labels)[e.key] || null;
+  const currentRec = () => recOf(slide.order[pos]);
+  const isDone = (e) => { const r = recOf(e); return !!(r && r.label); };
+
+  function slideDoneCount(name) {
+    let n = 0;
+    for (const [k, v] of Object.entries(state.labels)) if (v.label && slideOf(k) === name) n++;
+    for (const [k, v] of Object.entries(state.repeats)) if (v.label && slideOf(k) === name) n++;
+    return n;
+  }
+  function renderProgress() {
+    let total = 0, done = 0;
+    const sel = $("slideSelect");
+    IDX.slides.forEach((s, i) => {
+      const n = s.cells + nRepeats(s.cells), d = slideDoneCount(s.name);
+      total += n; done += d;
+      const text = s.name + "  (" + d + " / " + n + ")";
+      if (sel.options[i].textContent !== text) sel.options[i].textContent = text;
+    });
+    $("progText").textContent = done + " / " + total;
+    $("progBar").style.width = (100 * done / Math.max(1, total)) + "%";
+  }
+
+  function renderPanel() {
+    const it = slide.order[pos], c = slide.byKey.get(it.key), rec = currentRec();
+    $("posText").textContent = (pos + 1) + " / " + slide.order.length;
+    $("slideProg").textContent = slide.order.filter(isDone).length + " / " + slide.order.length;
+    $("slideText").textContent = slide.name;
+    $("centreText").textContent = "(" + c.cx + ", " + c.cy + ")";
+    $("areaText").textContent = c.area + " px²";
+    $("repeatChip").style.display = it.rep ? "inline-block" : "none";
+    document.querySelectorAll(".cls").forEach(b => b.setAttribute("aria-pressed", String(!!rec && rec.label === b.dataset.id)));
+    const conf = rec ? rec.conf : pendingConf;
+    document.querySelectorAll("#confSeg button").forEach(b => b.setAttribute("aria-pressed", String(conf === b.dataset.conf)));
+    if (document.activeElement !== $("noteInput")) $("noteInput").value = rec && rec.note ? rec.note : "";
+    renderProgress();
+  }
+
+  function show(i) {
+    if (!slide) return;
+    pos = Math.max(0, Math.min(slide.order.length - 1, i));
+    pendingConf = DEFAULT_CONF;
+    LS.set(STORE_ID + ":pos:" + raterId + ":" + slide.name, String(pos));
+    renderPanel(); render();
+  }
+
+  function writeRec(patch) {
+    const it = slide.order[pos];
+    const field = it.rep ? "repeats" : "labels";
+    const prev = state[field][it.key] || { label: null, conf: pendingConf, note: "" };
+    const rec = Object.assign({}, prev, patch, { t: new Date().toISOString() });
+    state[field][it.key] = rec;
+    queueWrite(slide.name, it.rep ? "repeats" : "cells", it.key, rec);
+    renderPanel();
+  }
+  function setLabel(id) {
+    if (!slide) return;
+    writeRec({ label: id, conf: (currentRec() && currentRec().conf) || pendingConf });
+    if ($("autoAdvance").checked && pos < slide.order.length - 1) setTimeout(() => show(pos + 1), 120);
+  }
+  function setConf(conf) {
+    if (!slide) return;
+    if (currentRec()) writeRec({ conf: conf }); else { pendingConf = conf; renderPanel(); }
+  }
+  function nextUnlabeled() {
+    for (let d = 1; d <= slide.order.length; d++) {
+      const i = (pos + d) % slide.order.length;
+      if (!isDone(slide.order[i])) { show(i); return; }
+    }
+    const next = IDX.slides.find(s => slideDoneCount(s.name) < s.cells + nRepeats(s.cells));
+    if (next && next.name !== slide.name) openSlide(next.name);
+  }
+
+  // ---------- export ----------
+  // ---------- start over: delete all of this rater's labels ----------
+  async function resetAll() {
+    $("resetConfirm").hidden = true; $("resetBtn").hidden = false;
+    clearTimeout(flushTimer);
+    while (flushing) await new Promise(r => setTimeout(r, 100));
+    writeQueue.clear();
+    state.labels = {}; state.repeats = {};
+    saveLocal();
+    for (const s of IDX.slides) LS.set(STORE_ID + ":pos:" + raterId + ":" + s.name, "0");
+    if (dbOK) {
+      setStatus("saving", "Deleting labels");
+      try {
+        for (const name of Array.from(docExists)) { await slideDoc(name).delete(); docExists.delete(name); }
+        setStatus("saved", "All labels deleted");
+      } catch (e) { setStatus("error", "Delete failed, try again"); }
+    } else setStatus("saved", "All labels deleted");
+    await openSlide(IDX.slides[0].name, 0);
+    setStatus("saved", "All labels deleted");
+  }
+
+  async function exportJson() {
+    const rows = [];
+    for (const [k, v] of Object.entries(state.labels)) rows.push(Object.assign({ cell_key: k, slide: slideOf(k), repeat: false }, v));
+    for (const [k, v] of Object.entries(state.repeats)) rows.push(Object.assign({ cell_key: k, slide: slideOf(k), repeat: true }, v));
+    const out = { rater_id: raterId, rater: state.rater, exported: new Date().toISOString(), labels: rows };
+    const text = JSON.stringify(out, null, 1);
+    const fname = "labels_" + (state.rater || "rater").replace(/[^A-Za-z0-9_-]/g, "") + "_" + new Date().toISOString().slice(0, 10) + ".json";
+    const dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null;
+    if (dl) {
+      try { await dl.save({ filename: fname, data: text }); $("storeNotice").textContent = "Export saved."; }
+      catch (e) { $("storeNotice").textContent = "Export was not saved."; }
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+    a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  // ---------- UI wiring ----------
+  for (const c of CLASSES) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "cls"; b.dataset.id = c.id;
+    b.style.setProperty("--cc", "var(" + COLORS[c.key] + ")");
+    const kb = document.createElement("kbd"); kb.textContent = c.key.toUpperCase();
+    const nm = document.createElement("span"); nm.className = "name"; nm.textContent = c.name + " ";
+    if (c.alt) { const sm = document.createElement("small"); sm.textContent = "(" + c.alt + ")"; nm.appendChild(sm); }
+    const ds = document.createElement("span"); ds.className = "desc"; ds.textContent = c.desc; ds.title = c.desc;
+    b.append(kb, nm, ds);
+    b.addEventListener("click", () => setLabel(c.id));
+    $("classes").appendChild(b);
+  }
+  for (const s of IDX.slides) { const o = document.createElement("option"); o.value = s.name; o.textContent = s.name; $("slideSelect").appendChild(o); }
+  $("slideSelect").addEventListener("change", (e) => { openSlide(e.target.value); e.target.blur(); });
+  document.querySelectorAll("#confSeg button").forEach(b => b.addEventListener("click", () => setConf(b.dataset.conf)));
+  $("prevBtn").addEventListener("click", () => show(pos - 1));
+  $("nextBtn").addEventListener("click", () => show(pos + 1));
+  $("unlabeledBtn").addEventListener("click", nextUnlabeled);
+  $("exportBtn").addEventListener("click", exportJson);
+  $("resetBtn").addEventListener("click", () => {
+    let n = 0;
+    for (const v of Object.values(state.labels)) if (v.label) n++;
+    for (const v of Object.values(state.repeats)) if (v.label) n++;
+    $("resetCount").textContent = n;
+    $("resetBtn").hidden = true; $("resetConfirm").hidden = false;
+  });
+  $("resetCancel").addEventListener("click", () => { $("resetConfirm").hidden = true; $("resetBtn").hidden = false; });
+  $("resetDo").addEventListener("click", resetAll);
+  let noteTimer = null;
+  $("noteInput").addEventListener("input", () => { clearTimeout(noteTimer); noteTimer = setTimeout(() => writeRec({ note: $("noteInput").value }), 700); });
+  $("raterInput").addEventListener("change", () => {
+    state.rater = $("raterInput").value.trim(); saveLocal();
+    if (dbOK) { metaWritten = false; setStatus("saving", "Saving"); clearTimeout(flushTimer); flushTimer = setTimeout(flush, 300); }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.target === $("noteInput") || e.target === $("raterInput")) { if (e.key === "Escape") e.target.blur(); return; }
+    if (e.target === $("slideSelect") || e.metaKey || e.ctrlKey || e.altKey || !slide) return;
+    const k = e.key.toLowerCase();
+    const cls = CLASSES.find(c => c.key === k);
+    if (cls) { setLabel(cls.id); e.preventDefault(); return; }
+    if (k === "q") setConf("low"); else if (k === "w") setConf("medium"); else if (k === "e") setConf("high");
+    else if (k === "arrowleft") show(pos - 1);
+    else if (k === "arrowright" || k === " " || k === "enter") { show(pos + 1); e.preventDefault(); }
+    else if (k === "j") nextUnlabeled();
+    else if (k === "c") { showOutline = !showOutline; render(); }
+    else if (k === "p") { pixelated = !pixelated; render(); }
+    else if (k === "n") { $("noteInput").focus(); e.preventDefault(); }
+  });
+  let resizeTimer = null;
+  window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => slide && render(), 150); });
+
+  // ---------- start ----------
+  function startWith(id, mode) {
+    raterId = id;
+    const saved = LS.get(localKey());
+    if (saved) { try { const s = JSON.parse(saved); mergeIn(state.labels, s.labels || {}); mergeIn(state.repeats, s.repeats || {}); if (!state.rater) state.rater = s.rater || ""; } catch (e) { /* ignore a broken copy */ } }
+    $("raterInput").value = state.rater;
+    $("storeNotice").textContent = mode === "shared"
+      ? "Labels save to the shared store. A copy stays in this browser."
+      : "No shared store here. Labels stay in this browser. Use Export to send them.";
+    const last = LS.get(STORE_ID + ":slide:" + raterId);
+    openSlide(IDX.slides.some(s => s.name === last) ? last : IDX.slides[0].name);
+  }
+  function localId() {
+    let id = LS.get("mglabel:localid");
+    if (!id) { id = "local-" + Math.random().toString(36).slice(2, 10); LS.set("mglabel:localid", id); }
+    return id;
+  }
+
+  let started = false;
+  const hasRuntime = !!(window.claude && window.claude.use);
+  const fallback = setTimeout(() => { if (!started) { started = true; startWith(localId(), "local"); } }, hasRuntime ? 12000 : 0);
+  if (hasRuntime) {
+    setStatus("idle", "Connecting");
+    (async () => {
+      const [dbNs, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+      const uid = user ? await user.id() : null;
+      if (started) return;
+      started = true; clearTimeout(fallback);
+      if (!dbNs || !uid) { startWith(localId(), "local"); return; }
+      db = dbNs; dbOK = true; raterId = uid;
+      try { await loadShared(); } catch (e) { dbOK = false; }
+      startWith(uid, dbOK ? "shared" : "local");
+    })();
+  }
+})();
+</script>
