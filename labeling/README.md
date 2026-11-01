@@ -79,6 +79,16 @@ stay valid for a slightly different cut of the same cell. B2_1 had 36 labels (no
 * Headless Chrome with the 36 labels in the browser store: B2_1 shows 36 / 620 done.
 * The cell order of each slide changes (a new cell set). "Next unlabeled" finds the open cells.
 
+### All 64 slides (2026-11-01)
+
+* All pairs of `Data/pair-data/1`–`4` are on the page: 64 slides, 27,849 cells (30,636 items with second looks).
+* The slide list is sorted by data folder, then by slide number (`B2_<n>`).
+* Two cells with the same centroid (a drawn outline inside another, `VID3553_B2_4_00d04h00m` cells 322 and 324):
+  the later cell gets the key suffix `_2`.
+* The bundle is 89 MB, so it went up in two publishes (one publish takes at most 64 MB). The first publish added
+  slide files only; the second added the rest and `slides.js`, so the page never listed a slide without its file.
+* The label document of the largest slide (1,271 cells + 127 second looks) is about 193 KiB of the 256 KiB limit.
+
 ### Checks done (2026-10-30)
 
 * Headless Chrome: keys, auto-advance, notes, reload persistence, export, light and dark theme, 400 px width.

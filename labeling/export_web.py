@@ -31,6 +31,7 @@ import datetime
 import glob
 import json
 import os
+import re
 import shutil
 
 import cv2
@@ -72,7 +73,12 @@ def build_slide(slide_dir):
             box = [int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1]
             key = slide + "@" + str(cx) + "_" + str(cy)
             if key in keys:
-                raise RuntimeError("Duplicate cell key " + key)
+                # Two cells with the same centroid (a drawn outline inside another): number the later ones
+                n = 2
+                while f"{key}_{n}" in keys:
+                    n += 1
+                print(f"      {slide}: cells share the centroid {cx}, {cy}; cell {row['cell_id']} gets key suffix _{n}")
+                key = f"{key}_{n}"
             keys.add(key)
 
             tight = full[box[1]:box[3], box[0]:box[2]]
@@ -177,11 +183,20 @@ def export(slide_dirs, force, labeled):
     return blocked
 
 
+def slide_order(d):
+    """Sort key: data folder (Data/pair-data/<n>), then slide number (B2_<n>)."""
+    hits = glob.glob(os.path.join(bundle.ROOT, "Data", "pair-data", "*", d["raw_image"]))
+    folder = os.path.basename(os.path.dirname(hits[0])) if hits else "~"
+    number = re.search(r"_B2_(\d+)_", d["name"])
+    return (folder, int(number.group(1)) if number else 0, d["name"])
+
+
 def write_index(repeat_fraction):
     slides = []
-    for path in sorted(glob.glob(os.path.join(bundle.SLIDES_DIR, "*.js"))):
+    for path in glob.glob(os.path.join(bundle.SLIDES_DIR, "*.js")):
         d = bundle.read_slide_js(path)
-        slides.append({"name": d["name"], "hash": d["hash"], "width": d["width"], "height": d["height"], "cells": len(d["cells"])})
+        slides.append((slide_order(d), {"name": d["name"], "hash": d["hash"], "width": d["width"], "height": d["height"], "cells": len(d["cells"])}))
+    slides = [s for _, s in sorted(slides, key=lambda x: x[0])]
     with open(os.path.join(bundle.WEB_DIR, "slides.js"), "w") as f:
         f.write("window.LABELING = ")
         json.dump({"version": 3, "repeat_fraction": repeat_fraction, "slides": slides}, f, indent=1)
