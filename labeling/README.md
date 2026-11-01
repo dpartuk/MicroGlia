@@ -1,6 +1,6 @@
 # Expert Labeling (Phase 2)
 
-Experts label the cells that `pair_contour/` cuts. The page runs in a browser.
+Experts label the cells that `pair_probe/` cuts (`bundle.PIPE_METHOD`; `pair_contour/` until 2026-11-01). The page runs in a browser.
 It works in two modes:
 
 | Mode | Where | Where labels go |
@@ -16,7 +16,7 @@ It works in two modes:
 labeling/
 ├── README.md
 ├── bundle.py                # Shared helpers: mask/slide hashes, lock file, mask comparison
-├── export_web.py            # pair_contour output -> web bundle; --mark-published locks published slides
+├── export_web.py            # pipeline output -> web bundle; --mark-published locks published slides; --keep-labels
 ├── merge_labels.py          # JSON exports or store documents -> labels.csv + Cohen's kappa
 ├── check_stable.py          # Reruns the pipeline with the locked settings, compares with the published masks
 ├── published_slides.json    # The lock (in git): slide hash, cells, settings, commit per published slide
@@ -34,6 +34,7 @@ labeling/
 * **Start over.** A top-bar button deletes all labels of this rater (shared store and browser), after an in-page confirmation.
 * **Layout.** On a desktop window (≥ 901 × 560 px) the page fits the window with no scroll. Checked at 1920×1080, 1400×900 and 1280×720.
 * **Cell key.** Labels are keyed by `slide@cx_cy` (mask centroid), not by cell number.
+  A labeled cell that gets a new cut keeps its old key (`--keep-labels`, below).
   Each label also stores `mh`, the hash of the exact mask the rater saw.
 * **Raters.** One rater labels all cells (decision 2026-10-30). The code also supports more raters:
   `merge_labels.py` then reports Cohen's kappa per rater pair.
@@ -58,13 +59,25 @@ Labels must always point to the cells the rater saw. Four rules protect this:
 | A. Locked slides | `export_web.py` + `published_slides.json` | A published slide is never rewritten with other masks. The script prints identical / changed / removed / new and keeps the file. `--force` overrides. |
 | B. Page = reference | `merge_labels.py` | Masks come from the published slide files, checked against the lock. Each label row gets a status: `matched`, `no_current_cell`, `unknown_key`, `mask_hash_mismatch` or `no_reference`. |
 | C. Recorded source | slide files, labels | Each slide file holds its hash, the pipeline settings and the commit. Each label holds its mask hash. |
-| D. Stability check | `check_stable.py` | Reruns pair_contour with the locked settings in a temporary folder (or `--current`) and compares. Exit code 1 = a difference. |
+| D. Stability check | `check_stable.py` | Reruns the pipeline with the locked settings in a temporary folder (or `--current`) and compares. Exit code 1 = a difference. |
+
+| E. Kept labels | `export_web.py --force --keep-labels <store files>` | A replaced slide keeps the rater's labels. Each labeled cell is matched to one new cell (IoU ≥ 0.5, one to one). The new cell keeps the old key and stores the old mask hash as `prev_mh`. `merge_labels.py` reports these labels as `matched_previous_cut`. |
 
 **Publish steps:** `check_stable.py` → `export_web.py` → publish `index.html` + `slides.js` + `slides/*.js` →
 `export_web.py --mark-published` → commit `published_slides.json`.
 
 **New machine:** read the published slide files with the Artifact tool (`action: read`, `paths: ["slides/<slide>.js", …]`)
 into `labeling/web/slides/`. The lock in git confirms them: `merge_labels.py` and `check_stable.py` refuse a file whose hash differs.
+
+### Change to pair_probe cuts (2026-11-01)
+
+The user decided to keep the rater's labels when the cuts change: the rater is an expert, and the labels
+stay valid for a slightly different cut of the same cell. B2_1 had 36 labels (no second looks); B2_2 had none.
+* All 36 labeled cells matched one pair_probe cell each (IoU 0.70–0.98, same cell numbers) and keep their key.
+* B2_1: 568 → 564 cells; B2_2: 345 → 333 cells (the halo band puts some cells on the image edge).
+* `merge_labels.py`: 36 `matched_previous_cut`. `check_stable.py --current`: 564 / 333 identical.
+* Headless Chrome with the 36 labels in the browser store: B2_1 shows 36 / 620 done.
+* The cell order of each slide changes (a new cell set). "Next unlabeled" finds the open cells.
 
 ### Checks done (2026-10-30)
 

@@ -3,8 +3,8 @@ Check that the pipeline still gives the published cells.
 
 For each slide in labeling/published_slides.json:
   1. The slide file in labeling/web/slides must have the locked slide hash.
-  2. pair_contour runs again with the LOCKED settings into a temporary folder
-     (pair_contour/output is not touched). With --current, the existing pair_contour/output is used instead.
+  2. The pipeline (bundle.PIPE_METHOD) runs again with the LOCKED settings into a temporary folder
+     (its output folder is not touched). With --current, the existing output folder is used instead.
   3. The new masks are compared with the published masks: identical, changed (IoU >= 0.5, not equal),
      removed (no match) and new (no published mask).
 
@@ -21,7 +21,7 @@ import tempfile
 
 import bundle
 
-sys.path.insert(0, os.path.join(bundle.ROOT, "pair_contour", "src"))
+sys.path.insert(0, os.path.join(bundle.ROOT, bundle.PIPE_METHOD, "src"))
 from extract_pair_cells import extract_pair_cells, mask_path_for  # noqa: E402
 
 
@@ -40,7 +40,7 @@ def rerun(entry, out_dir):
 def main():
     parser = argparse.ArgumentParser(description="Compare the pipeline output with the published labeling slides")
     parser.add_argument("slides", nargs="*", help="Slide names (default: every locked slide)")
-    parser.add_argument("--current", action="store_true", help="Use pair_contour/output instead of a fresh run")
+    parser.add_argument("--current", action="store_true", help="Use the existing pipeline output instead of a fresh run")
     args = parser.parse_args()
 
     lock = bundle.load_lock()

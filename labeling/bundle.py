@@ -2,7 +2,8 @@
 Shared helpers for the labeling bundle: encoding, hashes, the lock file and mask comparison.
 
 Identity of a cell:
-    cell_key   = <slide>@<cx>_<cy>          (mask centroid, what labels are stored under)
+    cell_key   = <slide>@<cx>_<cy>          (mask centroid, what labels are stored under; a cell that the rater
+                                            labeled on an earlier cut keeps that cut's key, see export_web.py --keep-labels)
     mask hash  = sha1(box + mask bits)[:12] (the exact pixels the rater saw, stored with each label)
     slide hash = sha1(sorted key:mask hash)[:12]
 
@@ -22,7 +23,8 @@ import cv2
 import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PIPE_DIR = os.path.join(ROOT, "pair_contour", "output")
+PIPE_METHOD = "pair_probe"   # The cutting method of the labeling slides (pair_contour until 2026-11-01)
+PIPE_DIR = os.path.join(ROOT, PIPE_METHOD, "output")
 WEB_DIR = os.path.join(ROOT, "labeling", "web")
 SLIDES_DIR = os.path.join(WEB_DIR, "slides")
 LOCK_PATH = os.path.join(ROOT, "labeling", "published_slides.json")
@@ -39,10 +41,10 @@ def slide_hash(cells):
 
 
 def pipeline_commit():
-    """Short commit of the repo plus '-dirty' when pair_contour/ has uncommitted changes."""
+    """Short commit of the repo plus '-dirty' when the pipeline folder has uncommitted changes."""
     try:
         head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
-        dirty = subprocess.run(["git", "status", "--porcelain", "--", "pair_contour/process.py", "pair_contour/src"],
+        dirty = subprocess.run(["git", "status", "--porcelain", "--", PIPE_METHOD + "/process.py", PIPE_METHOD + "/src"],
                                cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
         return head + ("-dirty" if dirty else "")
     except (OSError, subprocess.CalledProcessError):
@@ -83,7 +85,7 @@ def slide_file_masks(slide_data):
 
 
 def pipeline_masks(slide_dir):
-    """[(cell_id, full-slide mask)] from a pair_contour slide output folder."""
+    """[(cell_id, full-slide mask)] from a pipeline slide output folder."""
     summary = json.load(open(os.path.join(slide_dir, "summary.json")))
     img_w, img_h = summary["image_size"]
     cells = []

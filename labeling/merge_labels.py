@@ -9,7 +9,9 @@ read from the published page). They hold the exact masks the rater saw. For each
   1. The slide file must exist and its slide hash must equal the lock (labeling/published_slides.json).
   2. The cell_key must be in the slide file.
   3. If the label carries a mask hash (mh), it must equal the slide file's mask hash for that key.
-  4. The reference mask is matched to the CURRENT pair_contour output by IoU (>= --min-iou).
+     A label made on the earlier cut of a kept cell (mh = the cell's prev_mh, export_web.py --keep-labels)
+     gets the status matched_previous_cut: the rater saw the earlier cut of the same cell.
+  4. The reference mask is matched to the CURRENT pipeline output (bundle.PIPE_METHOD) by IoU (>= --min-iou).
 A label that fails a step keeps its row with a status that names the step; it is never guessed.
 
 Agreement:
@@ -81,13 +83,13 @@ class Reference:
         return self.slides[name]
 
     def match(self, name, key):
-        """(status, current cell id, iou, mask hash) for one cell key."""
+        """(status, current cell id, iou, mask hash, earlier mask hash) for one cell key."""
         s = self.slide(name)
         if s is None:
-            return "no_reference", None, 0.0, ""
+            return "no_reference", None, 0.0, "", ""
         cell = s["cells"].get(key)
         if cell is None:
-            return "unknown_key", None, 0.0, ""
+            return "unknown_key", None, 0.0, "", ""
         if key not in self.matches:
             if name not in self.current:
                 pipe = os.path.join(bundle.PIPE_DIR, name)
@@ -95,7 +97,7 @@ class Reference:
             mask = bundle.decode_mask(cell, s["data"]["width"], s["data"]["height"])
             cid, iou = bundle.best_match(mask, self.current[name])
             self.matches[key] = ("matched", cid, iou) if iou >= self.min_iou else ("no_current_cell", None, iou)
-        return self.matches[key] + (cell["mh"],)
+        return self.matches[key] + (cell["mh"], cell.get("prev_mh", ""))
 
 
 def main():
@@ -113,9 +115,12 @@ def main():
     ref = Reference(args.slides_dir, args.min_iou)
     out_rows, status_count = [], Counter()
     for row in labels:
-        status, cid, iou, mh = ref.match(row["slide"], row["cell_key"])
+        status, cid, iou, mh, prev_mh = ref.match(row["slide"], row["cell_key"])
         if status == "matched" and row.get("mh") and row["mh"] != mh:
-            status, cid = "mask_hash_mismatch", None
+            if prev_mh and row["mh"] == prev_mh:
+                status = "matched_previous_cut"
+            else:
+                status, cid = "mask_hash_mismatch", None
         row["status"] = status
         status_count[status] += 1
         out_rows.append([row["slide"], row["cell_key"], mh, status, cid if cid is not None else "", round(iou, 3),

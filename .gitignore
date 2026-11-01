@@ -12,6 +12,7 @@ dpgnet/output/
 *.pth
 *.zip
 pair_contour/output/
+pair_probe/output/
 mask_contour/output/
 enhance/output/
 
