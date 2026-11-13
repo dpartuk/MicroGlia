@@ -1,73 +1,80 @@
-# Handoff: MicroGlia Phase 2 — expert labeling is live
+# Handoff: MicroGlia Phase 2 — all slides on the labeling page, extra Resolution page live
 
 You are continuing an M.Sc. research project (Doron Peleg, Afeka / HUJI; supervisor Dr. Hadas Lapid,
 advisor Dr. Lilach Gavish). Phase 2 cuts single microglia cells out of phase-contrast images and has an
 expert label them. The repo is github.com/dpartuk/MicroGlia (branch main). Read README.md,
-pair_contour/README.md (the cutting method) and labeling/README.md (the labeling tool) before you change anything.
+pair_probe/README.md (the current cutting method) and labeling/README.md (the labeling tool) before you change anything.
 
 ## Working rules (from the user)
 - Write replies and docs in ASD-STE100 Simplified Technical English (see AGENTS.md): sentences
   under 20 words, active voice, one instruction per sentence, same term for the same thing.
 - Never `git commit` or `git push` without explicit approval for that specific action.
-- **Optimize for fewer mistakes, not more cells.** Prefer strict filters. Report how many cells a
-  rule removes. Offer looser options instead of making them the default.
+- Leave `README_FOR_PROFESSOR.md` (deleted on disk) and the untracked `README_Setup.md` out of commits.
+- Prefer fewer mistakes over more cells. Judge added area strictly. A little overlap between touching cells is OK.
 - Earlier experiments are frozen. Make a new folder for a new experiment instead of changing an old one.
-- Check results visually (render crops/debug panels and look at them) before you report success.
+- Check results visually (render crops and look at them) before you report success.
   For web pages: test in headless Chrome (puppeteer-core + /Applications/Google Chrome.app) and look at screenshots.
+- Rater-facing text must not explain the morphology classes. One expert rater ("R.N").
 
 ## Setup on a new machine
 ```bash
 uv venv --python 3.12
 uv pip install --python .venv/bin/python -r requirements.txt   # .venv has no pip; always use uv
+uv pip install --python .venv/bin/python scikit-learn           # for labeling/select_resolution.py
 ```
 Raw data must be at `Data/pair-data/1..4/` (git-ignored): 64 RAW + MASK pairs, 16 per folder.
-`pair_contour/output/` and `labeling/web/` are git-ignored. Rebuild them:
+**Folders 2 and 4:** the MASK file names say `00d00h00m`, but the RAW images are at 4 h / 1 day. The masks are drawn
+on the RAW of their own folder (checked: grey correlation 0.99). Pass `--mask` explicitly for these folders:
 ```bash
-.venv/bin/python pair_contour/process.py                                                    # B2_2: 345 cells
-.venv/bin/python pair_contour/process.py --raw Data/pair-data/1/VID3553_B2_1_00d00h00m.tif  # B2_1: 568 cells
-.venv/bin/python pair_contour/gallery.py
+.venv/bin/python pair_probe/process.py --no-debug --raw Data/pair-data/2/VID3553_B2_1_00d04h00m.tif \
+    --mask Data/pair-data/2/VID3553_MASK_B2_1_00d00h00m.tif
 ```
-Then get the published slide files: Artifact tool `action: read`, `url` = the page, `paths` = `slides/<slide>.js`,
-into `labeling/web/slides/`. Run `.venv/bin/python labeling/check_stable.py` (must print "all published cells are unchanged").
-Do not rebuild a published slide with export_web.py; it keeps locked slides anyway.
+`pair_probe/output/`, `labeling/web/` and `labeling/web_extra/` are git-ignored. Get the published slide files with the
+Artifact tool (`action: read`, `paths: ["slides/<slide>.js", ...]`) into `labeling/web/slides/` (and `labeling/web_extra/slides/`).
+`labeling/check_stable.py` must print "all published cells are unchanged".
 
-## State on 2026-10-30
+## State on 2026-11-13
 
-### pair_contour (cutting method) — unchanged defaults
-Contour-only mask, border exclusion, magenta canvas. Run on **2 of 64 pairs only**: B2_2 (345 cells, 39 at the edge)
-and B2_1 (568 cells, 30 at the edge, 1 rejected for size). The user deferred the run on all 64 pairs.
-Decision 2026-10-30: the gallery shows "signal left outside" as "info only" and no longer shows FLAGGED;
-`qa_flag` stays in manifest.csv. The gallery JS was tested in headless Chrome: all keys work, no errors.
+### Cutting method: pair_probe (current)
+- pair_contour + halo band + slow entry into touching neighbours (problem 1, cells cut off at the outline).
+- Problem 2 (thin processes) was tried in pair_process/ and dropped; the user rejected 25 of 29 reviewed proposals.
+  pair_process/ was deleted. Record: "Tried and Dropped" in pair_probe/README.md.
+- Run on all 64 pairs (debug traces only for B2_1 and B2_2 of folder 1): 27,849 cells
+  (folder 1: 5,914; 2: 6,587; 3: 7,249; 4: 8,099). Gallery: pair_probe/output/gallery.html.
 
-### labeling/ (new) — live with one rater
-- **Published page:** https://claude.ai/artifact/7vzmvdo8PKKW37XxJYymWT (Version 5). The user shared it with the rater.
-- **Rater instructions (Claude Doc):** https://claude.ai/artifact/AYecc2epoNu7SLvDSksEd3 — sections: open the page,
-  confidence + class, export, start over, stop and continue. An open comment asks the user: email or a shared
-  Drive folder for the export file. The doc says email for now.
-- **Decisions:** one rater labels all cells (no inter-rater kappa). The rater is a domain expert: no class definitions
-  in the instructions. Labels: 1 Resting, 2 Surveilling, 3 Activated, 4 Resolution, 5 Dystrophic, X not a cell / bad cut,
-  U unsure. Confidence Low / Medium / High, default High, picked before the class key. 10% of each slide's cells
-  come back as a "second look" (intra-rater kappa). The data upload to claude.ai is approved by the user.
-- **Bundle:** per slide one `slides/<slide>.js` (full RAW as lossless PNG + per-cell mask bits + outline), ~1.3 MB.
-  The browser draws the cut and surroundings. Checked: decoded pixels in every mask equal RAW (913 cells, 0 mismatches).
-  64 slides ≈ 85 MB: fits one page version (256 MB, 511 files) but needs 2 publishes (64 MB per publish).
-- **Shared store layout:** `labels/<rater id>` = {rater, updated}; `labels/<rater id>/slides/<slide>` = {slide, cells, repeats}.
-  Rules: `labels` read/write owner; `labels/{self}` read/write interact. Verified: Editors cannot read another
-  rater's documents; the owner reads all. On a personal claude.ai account the rater must be invited as **Editor**.
-- **Not yet verified:** a real save and a Start over from the live page (only possible inside claude.ai).
-  First task next time: read the store and confirm the rater's labels arrive:
-  `ArtifactData list collection "labels"` with the page URL, then `labels/<id>/slides`.
-- **Cell stability (labeling/README.md, "Cell Stability"):** published slides are locked in `labeling/published_slides.json`
-  (hash eb0fe70a51cf for B2_1, 7270cf9cb3fd for B2_2). Each label stores its mask hash `mh` (labels saved before
-  Version 5 have none). `check_stable.py` reruns the pipeline with the locked settings: 913 / 913 identical on 2026-10-30.
-- **Merge:** `labeling/merge_labels.py` takes page exports or store documents saved by ArtifactData `out_dir`
-  (`<dir>/labels/<id>/slides/<slide>.json`). It takes the masks from the published slide files (checked against the lock),
-  matches them to the current pipeline output by mask IoU ≥ 0.5, and writes labeling/labels.csv with a status per label + kappa. Tested: same output IoU 1.0; with aura on, the 11 cells that move to the edge
-  are reported unmatched.
+### Labeling page (original) — all 64 slides
+- https://claude.ai/artifact/7vzmvdo8PKKW37XxJYymWT. Lock: labeling/published_slides.json (64 slides, commit 8320ca2).
+- B2_1 and B2_2 were republished with pair_probe cuts on 2026-11-01. The rater's 36 labels were kept with
+  `export_web.py --force --keep-labels` (old cell keys kept, old mask hash in `prev_mh`, merge status `matched_previous_cut`).
+  The rater has since relabeled those cells.
+- Duplicate centroid (VID3553_B2_4_00d04h00m cells 322/324, nested outlines): the later cell gets key suffix `_2`.
+- Progress on 2026-11-13: 2,195 first looks on folder 1 B2_1–B2_6 (all cells of those slides) + 219 second looks.
+  Resting 916, Surveilling 635, Activated 418, Resolution 114 (5.2%), Dystrophic 31 (1.4%), not a cell 77, unsure 4.
+  Intra-rater kappa 0.75. All labels have High confidence and no notes.
+
+### Extra page: Resolution set 1 — live, not yet used
+- https://claude.ai/artifact/WrMMHRUhyZ8Hf5UWHdvXC4. Separate artifact and store; the original page is not affected.
+- `labeling/select_resolution.py`: logistic model on shape/texture measures (leave-one-slide-out AUC 0.98,
+  top 5% precision 71%). Selection `labeling/extra/resolution_set1.csv`: 1,500 unlabeled cells, at most 50% per folder,
+  58 slides, no decoys, 10% second looks. Lock: labeling/published_extra.json.
+- A cell may be labeled on both pages (user decision: a consistency check). Class shares come only from the original page.
+- On 2026-11-13 its store was empty. **The user must share the page with the rater** (same access as the original page).
+- Merge: `merge_labels.py <files> --slides-dir labeling/web_extra/slides --lock labeling/published_extra.json --page extra`.
+
+### Other artifacts
+- Rater instructions (Claude Doc): https://claude.ai/artifact/AYecc2epoNu7SLvDSksEd3
+- Process review page (obsolete, process step dropped): https://claude.ai/artifact/TQrBmJjUGFXKYSmFaxeNUe
+
+## Read labels
+```
+ArtifactData list collection "labels" (page URL) -> rater id
+ArtifactData list collection "labels/<rater id>/slides" with out_dir -> json files
+.venv/bin/python labeling/merge_labels.py "<out_dir>/labels/*/slides/*.json" --out <csv>
+```
 
 ## Next work
-1. Confirm the rater's first labels arrive in the store (see above). Then confirm Start over deletes from the store.
-2. Answer the open doc comment (email vs Drive) and update section 3 of the instructions if needed.
-3. When the user approves: run pair_contour on the other 62 pairs, check each overview visually, then follow the
-   publish steps in labeling/README.md (check_stable → export → publish in two batches → --mark-published → commit the lock). New slides do not change the order of slides already labeled.
-4. When labels come in: dump the store with ArtifactData (`out_dir`) and run merge_labels.py.
+1. Confirm the rater uses the extra page (store not empty, status "Connected to shared store").
+2. When extra labels arrive: merge with `--page extra`, report Resolution precision of the selection per folder.
+3. Dystrophic is still rare (1.4%) and simple measures do not separate it. Possible next step: image-embedding
+   similarity search from the Dystrophic examples, once more examples exist.
+4. Possible reminder to the rater: use the confidence keys (Q / W / E); all labels so far are High.
