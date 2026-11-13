@@ -14,6 +14,10 @@ read from the published page). They hold the exact masks the rater saw. For each
   4. The reference mask is matched to the CURRENT pipeline output (bundle.PIPE_METHOD) by IoU (>= --min-iou).
 A label that fails a step keeps its row with a status that names the step; it is never guessed.
 
+Extra page (export_extra.py): run with --slides-dir labeling/web_extra/slides --lock labeling/published_extra.json
+--page extra. Its cell keys are the original keys, so its rows merge with the original page's rows by cell key.
+Class shares (prevalence) come only from the original page: the extra page shows selected cells.
+
 Agreement:
   * inter-rater: Cohen's kappa for every pair of raters, on cells both labeled (first look).
   * intra-rater: Cohen's kappa between the first look and the second look of the same rater.
@@ -61,9 +65,9 @@ def read_labels(files):
 class Reference:
     """Published slide files, checked against the lock, matched to the current pipeline output."""
 
-    def __init__(self, slides_dir, min_iou):
+    def __init__(self, slides_dir, min_iou, lock_path):
         self.slides_dir, self.min_iou = slides_dir, min_iou
-        self.lock = bundle.load_lock()
+        self.lock = json.load(open(lock_path)) if os.path.exists(lock_path) else {}
         self.slides, self.current, self.matches = {}, {}, {}
 
     def slide(self, name):
@@ -105,6 +109,8 @@ def main():
     parser.add_argument("exports", nargs="+", help="JSON files (globs allowed)")
     parser.add_argument("--slides-dir", default=bundle.SLIDES_DIR, help="Folder with the published slide files")
     parser.add_argument("--min-iou", type=float, default=bundle.MIN_IOU, help="Lowest mask IoU accepted as the same cell")
+    parser.add_argument("--lock", default=bundle.LOCK_PATH, help="Lock file of the page (labeling/published_extra.json for the extra page)")
+    parser.add_argument("--page", default="main", help="Page name written to each row (main or extra)")
     parser.add_argument("--out", default=OUT_CSV)
     args = parser.parse_args()
 
@@ -112,7 +118,7 @@ def main():
     labels = read_labels(files)
     print(f"Read {len(labels)} labels from {len(files)} file(s)")
 
-    ref = Reference(args.slides_dir, args.min_iou)
+    ref = Reference(args.slides_dir, args.min_iou, args.lock)
     out_rows, status_count = [], Counter()
     for row in labels:
         status, cid, iou, mh, prev_mh = ref.match(row["slide"], row["cell_key"])
@@ -125,12 +131,12 @@ def main():
         status_count[status] += 1
         out_rows.append([row["slide"], row["cell_key"], mh, status, cid if cid is not None else "", round(iou, 3),
                          row["rater_id"], row["rater"], row["label"], row.get("conf") or "", row.get("note") or "",
-                         row["repeat"], row.get("t", ""), row["source"]])
+                         row["repeat"], row.get("t", ""), row["source"], args.page])
 
     with open(args.out, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["slide", "cell_key", "mask_hash", "status", "current_cell_id", "iou", "rater_id", "rater", "label",
-                    "confidence", "note", "repeat", "time", "source"])
+                    "confidence", "note", "repeat", "time", "source", "page"])
         w.writerows(out_rows)
     print(f"Wrote {args.out}: {len(out_rows)} rows")
     for status, n in sorted(status_count.items()):

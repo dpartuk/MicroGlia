@@ -18,6 +18,10 @@ labeling/
 ├── bundle.py                # Shared helpers: mask/slide hashes, lock file, mask comparison
 ├── export_web.py            # pipeline output -> web bundle; --mark-published locks published slides; --keep-labels
 ├── merge_labels.py          # JSON exports or store documents -> labels.csv + Cohen's kappa
+├── select_resolution.py     # Model: probable Resolution cells with no label -> extra/<name>.csv
+├── export_extra.py          # Extra page bundle (web_extra/) from a selection; --mark-published -> published_extra.json
+├── extra/                   # Cell selections of extra pages (in git)
+├── published_extra.json     # Lock of the extra page (in git)
 ├── check_stable.py          # Reruns the pipeline with the locked settings, compares with the published masks
 ├── published_slides.json    # The lock (in git): slide hash, cells, settings, commit per published slide
 ├── src/labeling_page.html   # The labeling page (source)
@@ -78,6 +82,22 @@ stay valid for a slightly different cut of the same cell. B2_1 had 36 labels (no
 * `merge_labels.py`: 36 `matched_previous_cut`. `check_stable.py --current`: 564 / 333 identical.
 * Headless Chrome with the 36 labels in the browser store: B2_1 shows 36 / 620 done.
 * The cell order of each slide changes (a new cell set). "Next unlabeled" finds the open cells.
+
+### Extra page: Resolution set 1 (2026-11-13)
+
+The rater's first 2,195 labels are about 5% Resolution. The user asked for a second page with only cells
+that are probably Resolution and have no label yet, with no effect on the original page.
+* Page: https://claude.ai/artifact/WrMMHRUhyZ8Hf5UWHdvXC4 (separate artifact and store, same page code,
+  title "Microglia Cell Labeling · Extra Set"). The owner shares it with the rater.
+* `select_resolution.py`: logistic model (Resolution vs rest) on shape and texture measures.
+  Leave-one-slide-out on the 6 labeled slides: AUC 0.98; top 5% precision 71%, top 10% 47% (recall 90%).
+  The main confusion is Activated (large cells).
+* Selection `extra/resolution_set1.csv`: 1,500 unlabeled cells, at most 50% from one data folder
+  (folder 1: 48, 2: 623, 3: 79, 4: 750), 58 slides. No decoy cells (user decision). 10% second looks.
+* The slide files hold only the selected cells, copied from the published slide files: same cell keys
+  and mask hashes. A cell can later be labeled on both pages (user decision: accepted, a free consistency check).
+* Merge: `merge_labels.py <files> --slides-dir labeling/web_extra/slides --lock labeling/published_extra.json --page extra`.
+  Class shares come only from the original page.
 
 ### All 64 slides (2026-11-01)
 
